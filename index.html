@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>臨床藥學題庫隨機測驗系統</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --success: #16a34a;
+      --danger: #dc2626;
+      --warning-bg: #fef2f2;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); line-height: 1.6; padding: 20px; }
+    .container { max-width: 880px; margin: 0 auto; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1); margin-bottom: 24px; }
+    h1 { font-size: 1.8rem; margin-bottom: 8px; color: #0f172a; text-align: center; }
+    .subtitle { text-align: center; color: var(--text-muted); margin-bottom: 24px; font-size: 0.95rem; }
+    .section-title { font-weight: 600; margin-bottom: 12px; font-size: 1.1rem; color: #334155; }
+    .checkbox-group, .radio-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .option-label { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: #f1f5f9; border-radius: 8px; cursor: pointer; transition: background 0.2s; border: 1px solid transparent; }
+    .option-label:hover { background: #e2e8f0; }
+    .option-label input:checked + span { font-weight: 600; color: var(--primary); }
+    .btn { display: inline-block; width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.2s; text-align: center; }
+    .btn:hover { background: var(--primary-hover); }
+    .question-card { margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 20px; }
+    .question-header { font-weight: 600; margin-bottom: 12px; font-size: 1.05rem; }
+    .chapter-tag { display: inline-block; padding: 2px 8px; background: #e0f2fe; color: #0369a1; border-radius: 4px; font-size: 0.8rem; margin-right: 8px; vertical-align: middle; }
+    .choices-list { display: flex; flex-direction: column; gap: 8px; }
+    .choice-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; }
+    .choice-item:hover { background: #f8fafc; }
+    .progress-bar { width: 100%; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; margin-bottom: 20px; }
+    .progress-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s; }
+    .result-score { font-size: 2.5rem; font-weight: 700; text-align: center; color: var(--primary); margin: 16px 0; }
+    .result-stat { text-align: center; color: var(--text-muted); margin-bottom: 24px; font-size: 1.1rem; }
+    .review-item { padding: 16px; border-radius: 8px; margin-bottom: 16px; border: 1px solid var(--border); background: #fafafa; }
+    .review-item.wrong { background: var(--warning-bg); border-color: #fca5a5; }
+    .review-options { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; padding-left: 4px; }
+    .review-opt { padding: 8px 12px; border-radius: 6px; font-size: 0.95rem; border: 1px solid var(--border); background: #ffffff; }
+    .review-opt.is-correct { border-color: #86efac; background: #f0fdf4; color: #166534; font-weight: 600; }
+    .review-opt.is-user-wrong { border-color: #fca5a5; background: #fef2f2; color: #991b1b; }
+    .analysis { margin-top: 10px; padding: 10px; background: #ffffff; border-radius: 6px; font-size: 0.9rem; border-left: 3px solid var(--primary); }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- 起始頁面 -->
+  <div id="setup-view" class="card">
+    <h1>臨床藥學題庫模擬測驗</h1>
+    <div class="subtitle">共收錄 225 題完整題庫（已排除腎臟病題目）</div>
+
+    <div class="section-title">步驟 1：選擇測驗章節（可複選）</div>
+    <div class="checkbox-group">
+      <label class="option-label"><input type="checkbox" name="chapter" value="asthma" checked> <span>氣喘 (54題)</span></label>
+      <label class="option-label"><input type="checkbox" name="chapter" value="liver" checked> <span>肝臟疾病 (60題)</span></label>
+      <label class="option-label"><input type="checkbox" name="chapter" value="pud" checked> <span>消化性潰瘍 (60題)</span></label>
+      <label class="option-label"><input type="checkbox" name="chapter" value="copd" checked> <span>COPD (51題)</span></label>
+    </div>
+
+    <div class="section-title">步驟 2：選擇測驗題數</div>
+    <div class="radio-group">
+      <label class="option-label"><input type="radio" name="count" value="30" checked> <span>30 題</span></label>
+      <label class="option-label"><input type="radio" name="count" value="50"> <span>50 題</span></label>
+      <label class="option-label"><input type="radio" name="count" value="100"> <span>100 題</span></label>
+      <label class="option-label"><input type="radio" name="count" value="all"> <span>所選章節全部題目</span></label>
+    </div>
+
+    <button class="btn" onclick="startQuiz()">開始隨機測驗</button>
+  </div>
+
+  <!-- 測驗進行頁面 -->
+  <div id="quiz-view" class="card hidden">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <span id="quiz-progress-text" style="font-weight:600; color:var(--text-muted);">已作答：0 題</span>
+      <span id="quiz-count-text" style="color:var(--text-muted); font-size:0.9rem;"></span>
+    </div>
+    <div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
+    
+    <div id="questions-container"></div>
+    <button class="btn" onclick="submitQuiz()">交卷並查看成績</button>
+  </div>
+
+  <!-- 成果結算與解析頁面 -->
+  <div id="result-view" class="card hidden">
+    <h1>測驗結果</h1>
+    <div class="result-score" id="score-display">0%</div>
+    <div class="result-stat" id="stat-display">答對 0 題 / 總計 0 題</div>
+
+    <div class="section-title">答題檢討與詳細解析</div>
+    <div id="review-container"></div>
+
+    <button class="btn" onclick="resetQuiz()">重新測驗</button>
+  </div>
+</div>
+
+<script>
+// 完整收錄 PDF 中四個非腎臟章節的所有題目、選項、原答案與解析[span_0](start_span)[span_0](end_span)[span_1](start_span)[span_1](end_span)[span_2](start_span)[span_2](end_span)
+const QUESTION_BANK = {
+  asthma: [
+    { id:"A1", ch:"氣喘", q:"28歲女性反覆夜間喘鳴，平時無症狀時肺功能接近正常；症狀發作時，吸入 salbutamol 後 FEV1 由 2.00L 增至 2.36L。下列判讀最適當？", options:{A:"只要支氣管擴張後改善，即足以排除同時存在 COPD", B:"此結果支持可變性呼氣氣流受限，配合病史支持氣喘，但仍須完成整體診斷評估", C:"增加量未達500mL，不能支持氣喘", D:"單次肺功能曾正常即可排除氣喘"}, ans:"B", exp:"FEV1增加360mL、18%，達成人常用的≥12%且≥200mL支氣管擴張反應標準[span_3](start_span)[span_3](end_span)。氣喘仍須結合典型症狀及鑑別診斷；可逆性不是排除COPD共存的充分條件[span_4](start_span)[span_4](end_span)。" },
+    { id:"A2", ch:"氣喘", q:"22 歲成人僅每月喘鳴2次，過去一年曾因急性惡化使用 prednisolone；目前只備有salbutamol。依 GINA 2026，最適當的處方檢視為何？", options:{A:"因症狀少於每週2次，維持 SABA 單用即可", B:"以 salmeterol 單用取代 salbutamol，可同時處理發炎", C:"只有FEV1 低於60%時才需要 ICS", D:"納入 ICS-containing 治療；可依適應條件採需要時低劑量 ICS-formoterol"}, ans:"D", exp:"症狀少不代表惡化風險低[span_5](start_span)[span_5](end_span)。成人與青少年不建議 SABA單用；既往嚴重惡化更強化 ICS-containing 治療的必要性[span_6](start_span)[span_6](end_span)[span_7](start_span)[span_7](end_span)。" },
+    { id:"A3", ch:"氣喘", q:"使用低劑量 ICS-LABA 的成人ACT為16分。藥師發現病人每週漏用4天、pMDI操作時先噴藥再過數秒才吸氣。下一步最適當？", options:{A:"立即添加 omalizumab，表示ICS-LABA治療失敗", B:"停掉ICS，以規律 salbutamol 取代控制治療", C:"直接將ICS增加至最高劑量，避免延誤控制", D:"先矯正吸入技術與依從性，評估誘因及共病後再判斷是否升階"}, ans:"D", exp:"升階前應先檢查診斷、依從性、吸入技巧、暴露與共病，不能直接視為重度難治型氣喘[span_8](start_span)[span_8](end_span)。" },
+    { id:"A4", ch:"氣喘", q:"病人使用 fluticasone-salmeterol 固定維持治療，詢問是否能把同一支當 MART 按需加吸。最適當的回應？", options:{A:"不能直接套用；MART須使用具相應證據及適用劑量的ICS-formoterol 組合", B:"只要同時含ICS 與任一LABA，都能直接作 MART", C:"若增加 fluticasone 含量，salmeterol 便會轉為快速起效", D:"salmeterol 較長效，因此比 formoterol 更適合即時緩解"}, ans:"A", exp:"ICS-LABA並非全部可互換作為緩解劑[span_9](start_span)[span_9](end_span)。MART主要建立於特定 ICS-formoterol 製劑；不能把維持用 fluticasone-salmeterol 直接改成按需急救[span_10](start_span)[span_10](end_span)。" },
+    { id:"A5", ch:"氣喘", q:"成人以中劑量 ICS-formoterol 維持良好控制4個月，無近期感染或旅行計畫，也未懷孕。考慮降階時何者最適當？", options:{A:"先把ICS 改為LABA單方，再觀察2週", B:"先完全停用ICS，待症狀再出現時恢復", C:"記錄基準控制與肺功能、評估惡化風險後，降低維持ICS約25-50%，安排追蹤", D:"若ACT 正常，就可立即停掉所有藥物而不必追蹤"}, ans:"C", exp:"控制穩定2-3個月可考慮降階，但須評估風險、提供行動計畫並追蹤[span_11](start_span)[span_11](end_span)。成人與青少年不應完全停掉ICS；降階並非改成LABA單方[span_12](start_span)[span_12](end_span)。" },
+    { id:"A6", ch:"氣喘", q:"8歲兒童用低劑量ICS控制欠佳，家長表示每天忘記給藥，想改用口服 montelukast。最適當的藥師建議？", options:{A:"先處理依從性與裝置問題；若仍選 montelukast，說明其防惡化效果較ICS 弱並告知神經精神風險", B:"montelukast 與ICS 防止惡化的效果相同，可直接無條件替代", C:"只要不願吸藥，就應改成長期口服 prednisolone", D:"口服藥不經肺部，因此沒有需要監測的不良反應"}, ans:"A", exp:"口服便利不等於療效等同ICS[span_13](start_span)[span_13](end_span)。兒童應先改善照護流程與裝置使用；選用 montelukast 時必須討論效益限制及神經精神風險[span_14](start_span)[span_14](end_span)。" },
+    { id:"A7", ch:"氣喘", q:"10 歲兒童開始 montelukast 後出現新發惡夢、易怒與行為改變，近期沒有其他新藥。最適當的處置？", options:{A:"把所有氣喘控制藥都停掉，等行為恢復再說", B:"加倍 montelukast，以免停藥造成ICS反彈", C:"以睡前服用為由認定惡夢與藥物無關，繼續觀察數月", D:"懷疑藥物相關神經精神事件，停止 montelukast 並儘速聯絡處方醫師評估替代控制方案"}, ans:"D", exp:"新發神經精神症狀是 montelukast 的重要警訊，應停用並及時評估，但不可連帶停用所有ICS-containing 控制治療[span_15](start_span)[span_15](end_span)。" },
+    { id:"A8", ch:"氣喘", q:"成人用 budesonide pMDI 後反覆口腔念珠菌感染，但氣喘控制良好。確認劑量適當後，何項介入最合理？", options:{A:"提高ICS 劑量，以其抗發炎效果治療念珠菌", B:"永久停用ICS，改用LABA單方避免感染", C:"吸藥後把漱口水吞下，讓藥效持續", D:"確認可相容的spacer 與正確技巧，每次吸藥後漱口並吐出，同時處理感染"}, ans:"D", exp:"局部副作用與口咽沉積有關[span_16](start_span)[span_16](end_span)。適用pMDI搭配相容 spacer、吸後漱口吐出可降低風險；感染須另行處理[span_17](start_span)[span_17](end_span)。" },
+    { id:"A9", ch:"氣喘", q:"病人認為 fluticasone 是吸入給藥，即使用高劑量也完全沒有全身性風險。最適當的衛教？", options:{A:"只要口服生體可用率低於1%，所有給藥途徑的全身暴露均為零", B:"全身性風險只取決於漱口是否確實，與劑量無關", C:"到達肺部的ICS仍可被全身吸收；高劑量及特定交互作用會增加全身性不良反應風險", D:"吸入給藥可完全排除腎上腺抑制，不須考慮合併用藥"}, ans:"C", exp:"低口服生體可用率不能代表肺部吸收為零[span_18](start_span)[span_18](end_span)。ICS仍須使用最低有效劑量，留意高劑量暴露、腎上腺抑制及強 CYP3A4抑制劑等交互作用[span_19](start_span)[span_19](end_span)。" },
+    { id:"A10", ch:"氣喘", q:"成人一年領用8罐200劑 salbutamol，表示「每次吸完就好了」，但常漏用ICS。最適當的風險判讀？", options:{A:"SABA 用量顯示惡化風險升高，應優先重評抗發炎治療、依從性及行動計畫", B:"未達每月1罐，所以沒有增加惡化風險", C:"有效緩解證明氣道發炎已獲控制，可停止ICS", D:"應增加規律 SABA次數來預防發炎"}, ans:"A", exp:"每年≥3罐200劑 SABA 已與較高惡化風險相關，不必等到每月1罐才警覺[span_20](start_span)[span_20](end_span)。短暫支氣管擴張不代表發炎已控制[span_21](start_span)[span_21](end_span)。" },
+    { id:"A11", ch:"氣喘", q:"急性氣喘病人重複吸入高劑量 salbutamol後，喘鳴改善但出現心悸與手抖，血鉀由4.0降至3.0 mmol/L。最合理的機轉與處置？", options:{A:"β2 刺激促進鉀進入細胞；依病情監測心電圖與電解質，綜合調整治療", B:"代表氣道感染惡化，應直接改抗生素而毋須電解質監測", C:"salbutamol 造成鉀由細胞移出，因此血鉀下降為檢驗錯誤", D:"吸入劑沒有全身作用，應優先判定為ICS副作用"}, ans:"A", exp:"高劑量 β2-agonist 可造成細胞內鉀位移、心搏過速及震顫[span_22](start_span)[span_22](end_span)。應評估嚴重度與心律風險[span_23](start_span)[span_23](end_span)。" },
+    { id:"A12", ch:"氣喘", q:"急性氣喘經多次salbutamol後，PEF及喘鳴明顯改善、血壓穩定，但呼吸仍快且乳酸上升。最適當的下一步判讀？", options:{A:"評估 β2-agonist 相關乳酸升高及其他原因，勿僅依呼吸快就持續加碼 salbutamol", B:"呼吸快必然代表支氣管阻塞未改善，應無上限增加 SABA", C:"PEF 改善即可排除酸鹼異常，不需進一步評估", D:"乳酸升高證明細菌感染，應停止所有吸入治療"}, ans:"A", exp:"高劑量 β2-agonist 可引起乳酸升高，代謝性因素可能造成持續呼吸快[span_24](start_span)[span_24](end_span)。仍須排除缺氧與感染[span_25](start_span)[span_25](end_span)。" },
+    { id:"A13", ch:"氣喘", q:"成人中重度氣喘急性惡化，需要全身性類固醇；可吞嚥、無嘔吐且腸胃吸收正常。何者最適當？", options:{A:"及早給予口服 prednisolone；靜脈途徑通常不比口服更有效", B:"必須先用靜脈 methylprednisolone，否則無法在急性期起效", C:"等所有 SABA 療程失敗24小時後才開始口服類固醇", D:"以高劑量 ICS必然可以完全取代此時的全身性類固醇"}, ans:"A", exp:"中重度惡化須及早使用全身性類固醇[span_26](start_span)[span_26](end_span)。能口服者通常優先口服；靜脈途徑並不因形式不同就更有效[span_27](start_span)[span_27](end_span)。" },
+    { id:"A14", ch:"氣喘", q:"未長期服用全身性類固醇的成人氣喘急性惡化，醫師處方 prednisolone 40 mg 每日早晨服用，共5天。下列評估最適當？", options:{A:"短療程絕不會有血糖、情緒或感染相關風險，不須衛教", B:"5天短療程必須額外逐步減量1個月，以免任何腎上腺危象", C:"氣喘急性惡化一律需使用至少4週全身性類固醇", D:"屬常用短療程範圍；療程少於2週通常無須逐步減量，但仍應監測不良反應"}, ans:"D", exp:"成人常用 prednisolone 40-50 mg/日、5-7天；療程<2週通常不須taper[span_28](start_span)[span_28](end_span)。短療程並非零風險[span_29](start_span)[span_29](end_span)[span_30](start_span)[span_30](end_span)。" },
+    { id:"A15", ch:"氣喘", q:"成人重度氣喘經氧氣、反覆吸入SABA、ipratropium 及全身性類固醇後仍低血氧、氣流受限明顯。下列附加治療最適當？", options:{A:"常規以靜脈 aminophylline 取代所有吸入藥，無須濃度監測", B:"改成LABA 單方即可立即解除重度惡化", C:"立即停用全身性類固醇，改靠口服 montelukast 救急", D:"於監測下考慮靜脈 magnesium sulfate，並持續評估更高層級照護"}, ans:"D", exp:"靜脈 magnesium sulfate 可用於對密集初始處置反應不佳的特定重度患者[span_31](start_span)[span_31](end_span)。" },
+    { id:"A16", ch:"氣喘", q:"成人重度氣喘在急診反覆使用 salbutamol，醫師考慮加上ipratropium。下列評估最適當？", options:{A:"ipratropium 與SABA 機轉相同，合併使用不可能有附加效益", B:"初始急性期合併使用可改善肺功能及降低住院風險，但不是以其取代ICS 長期抗發炎", C:"ipratropium 只適用COPD，任何氣喘急性期都禁用", D:"ipratropium 應作氣喘單一長期控制藥，出院停用 ICS"}, ans:"B", exp:"Ipratropium 阻斷膽鹼性支氣管收縮，與β2-agonist 機轉不同；在中重度急性期合併使用可有附加效益[span_32](start_span)[span_32](end_span)。" },
+    { id:"A17", ch:"氣喘", q:"急性氣喘病人原本明顯喘鳴，現在變得嗜睡、呼吸音極弱，PaCO2 由偏低升至正常上緣。最適當判讀？", options:{A:"PaCO2 未高於正常值，因此可排除嚴重發作", B:"可能出現疲乏與通氣衰竭，應立即升級急救與加護評估", C:"只需給鎮靜藥降低呼吸功，待自然改善", D:"喘鳴減少且PaCO2正常，代表可以出院"}, ans:"B", exp:"寂靜胸、意識改變及PaCO2 由低回升均可能是危險訊號[span_33](start_span)[span_33](end_span)。重症病人的喘鳴減少可能是氣流已嚴重減少[span_34](start_span)[span_34](end_span)。" },
+    { id:"A18", ch:"氣喘", q:"非孕成人氣喘急性惡化，室內空氣SpO2為88%。若題目明確採GINA 2026 摘要指引、無特殊例外，最適當的氧氣策略為何？", options:{A:"一律提高至100%並維持高流量，不需滴定", B:"給予可調整的氧氣，滴定至SpO2 92-95%，並隨治療反應監測", C:"等待血氣確認後才開始氧氣，以免掩蓋嚴重度", D:"沿用 COPD所有病人的固定88-92%目標，不考慮氣喘情境"}, ans:"B", exp:"GINA 2026 摘要更新為急性期目標 SpO2 92-95%，與部分舊教材的93-95%不同[span_35](start_span)[span_35](end_span)[span_36](start_span)[span_36](end_span)。" },
+    { id:"A19", ch:"氣喘", q:"氣喘患者感冒後喘鳴，無發燒、無局部肺炎徵象、無其他細菌感染證據。就抗生素使用，何者最適當？", options:{A:"所有病毒誘發氣喘都需預防性 azithromycin", B:"不常規給抗生素；依氣喘急性惡化處置並持續評估感染證據", C:"因使用全身性類固醇，一律同步給 ciprofloxacin", D:"痰色改變單獨就足以確定肺炎並決定完整抗生素療程"}, ans:"B", exp:"氣喘急性惡化不常規使用抗生素；病毒誘發及接受全身性類固醇本身都不是常規抗生素指徵[span_37](start_span)[span_37](end_span)。" },
+    { id:"A20", ch:"氣喘", q:"成人氣喘急性惡化在急診改善後準備出院，過去僅使用 salbutamol。何項計畫最完整？", options:{A:"症狀消失後全部停藥，4週後才決定是否需要追蹤", B:"把 SABA 固定每日使用1個月，不必建立控制治療", C:"啟動合適 ICS-containing 維持方案、確認技巧與行動計畫，安排2-7天內追蹤", D:"只給新的一罐salbutamol，等再次發作才回診"}, ans:"C", exp:"出院須確保抗發炎控制、按需緩解、技巧及書面行動計畫；成人依 GINA 2026 安排2-7天內追蹤[span_38](start_span)[span_38](end_span)。" },
+    { id:"A21", ch:"氣喘", q:"使用傳統需手口協調的budesonide 懸浮液pMDI時，病人用力急吸後立即吐氣，常聲音沙啞。最合理的操作修正？", options:{A:"依產品指示搖勻，吸藥時慢而深並協調按壓，吸後閉氣至可耐受約10秒", B:"吸入後立刻劇烈吐氣，以免藥物滯留肺部", C:"先按壓3劑到空氣中再一次吸氣，提升吸入濃度", D:"改為更快速吸氣，利用高流速減少口咽沉積"}, ans:"A", exp:"傳統pMDI 重點在慢而深與按壓協調[span_39](start_span)[span_39](end_span)。快速吸氣增加口咽沉積，適當閉氣有助肺部沉積[span_40](start_span)[span_40](end_span)。" },
+    { id:"A22", ch:"氣喘", q:"高齡氣喘患者因手口協調不佳想改用DPI，但急性期吸氣能力明顯不足。最適當的裝置評估？", options:{A:"所有DPI 皆只需相同固定流速，不必逐裝置評估", B:"吸氣能力不足只會影響口服藥，與DPI肺部遞送無關", C:"先評估對特定 DPI 阻力能否產生足夠吸氣流速，不足時考慮合適pMDI加 spacer 等替代方式", D:"DPI 不需要協調，所以無論吸氣流速都一定優於 pMDI"}, ans:"C", exp:"DPI依吸氣能量分散藥粉[span_41](start_span)[span_41](end_span)。不能把「不需按壓協調」解讀為不需評估吸氣能力[span_42](start_span)[span_42](end_span)。" },
+    { id:"A23", ch:"氣喘", q:"病人以QVAR RediHaler 使用 beclomethasone，藥師想加 spacer 改善操作。下列建議最適當？", options:{A:"只要是氣霧劑型，便可任意連接任何品牌 spacer", B:"改把藥液倒入 nebulizer 即可保持相同劑量及效果", C:"先辨識其為呼吸啟動型裝置，依產品指示不應加spacer，不能套用傳統pMDI教法", D:"所有含ICS 的吸入器都必須加spacer，與裝置機制無關"}, ans:"C", exp:"呼吸啟動型 QVAR RediHaler 與傳統按壓型 pMDI不同，不搭配spacer[span_43](start_span)[span_43](end_span)[span_44](start_span)[span_44](end_span)。" },
+    { id:"A24", ch:"氣喘", q:"兒童使用傳統pMDI 配 AeroChamber 時常聽到流速警示哨聲；家長認為聲音越大吸得越好。最適當的說明？", options:{A:"哨聲表示肺部沉積已達最高，不用修正", B:"改為先連噴5劑於儲霧罐，再等待一分鐘吸入", C:"警示常代表吸氣太快，應依裝置指示調整為較慢吸氣並確認密合與瓣膜動作", D:"應把流速哨拆除，避免影響吸入劑量"}, ans:"C", exp:"流速警示哨聲用來提醒吸氣過快，應放慢吸氣速度[span_45](start_span)[span_45](end_span)。" },
+    { id:"A25", ch:"氣喘", q:"病人用 Ellipta 後仍控制欠佳，自述上藥後只作短淺吸氣，並對吸嘴吐氣以確認暢通。何項修正最重要？", options:{A:"加上spacer，以提高所有DPI 的藥粉霧化", B:"每次吸完用清水沖洗內部藥粉通道", C:"改成吸入前對吸嘴吹更大力，使藥粉鬆散", D:"離開吸嘴吐氣後，再以口含密吸嘴作足夠長、穩定且深的吸氣，避免朝裝置呼氣"}, ans:"D", exp:"DPI不可向吸嘴吐氣以免受潮結塊；Ellipta 需要長、穩定且深的吸氣[span_46](start_span)[span_46](end_span)。" },
+    { id:"A26", ch:"氣喘", q:"氣喘患者用 ICS-LABA DPI 後反覆鵝口瘡，表示每次漱口都吞下，因擔心吐掉會減少療效。最適當的說明？", options:{A:"漱口後應吐出；要清除的是口咽殘留藥，不會把已進入肺部的藥效洗掉", B:"應將 DPI 固定接 spacer，漱口便可省略", C:"漱口水吞下才可避免局部感染", D:"DPI 完全沒有口咽沉積，不需漱口"}, ans:"A", exp:"含ICS 製劑吸入後漱口吐出可減少口咽殘留及局部副作用，不會洗掉肺部沉積的藥物[span_47](start_span)[span_47](end_span)。" },
+    { id:"A27", ch:"氣喘", q:"3歲氣喘幼兒需ICS吸入治療，但無法同步按壓與深吸，也無法配合DPI。最適當的初步裝置方案？", options:{A:"把成人每次噴數直接乘二，不必考慮裝置與遞送差異", B:"選擇年齡及產品適用的pMDI 加有瓣膜儲霧罐及密合面罩，示範照護者操作", C:"改DPI 並要求幼兒更用力吸氣，不須驗證能力", D:"因無法深吸，停止ICS而僅保留口服 SABA"}, ans:"B", exp:"幼兒可使用適用 pMDI、VHC與密合面罩，以正常潮氣呼吸吸入[span_48](start_span)[span_48](end_span)。" },
+    { id:"A28", ch:"氣喘", q:"兩款ICS 吸入器的粒徑分布與標示微克數不同。病人想按微克數1:1自行替換。下列說明最適當？", options:{A:"粒徑越大越容易到達小氣道，所以較粗粒子劑量應更低", B:"只有口服給藥需要考慮生體可用率，吸入製劑完全不需要", C:"標示微克數相同即代表肺部沉積量與全身暴露完全相同", D:"肺部沉積受粒徑、裝置及技巧影響，不同ICS 與劑型不能只靠標示微克數判定等效"}, ans:"D", exp:"標示劑量不等於到達肺部的沉積劑量，不可直接微克對微克換算[span_49](start_span)[span_49](end_span)。" },
+    { id:"A29", ch:"氣喘", q:"病人用 pMDI 控制良好，想因環保改成DPI，但實測對候選 DPI 無法產生足夠吸氣流速。最適當的共享決策？", options:{A:"保留現有 pMDI 但減半所有處方劑量，無須評估控制", B:"以可有效使用及維持控制為優先，探索其他可行低碳選擇，勿僅因碳排而強制更換", C:"只要 DPI 碳排較低，就應更換，不必考慮藥物遞送", D:"先停ICS以減少吸入器數量，最能兼顧環保與安全"}, ans:"B", exp:"低碳處方須以可有效使用與維持疾病控制為前提[span_50](start_span)[span_50](end_span)。" },
+    { id:"A30", ch:"氣喘", q:"成人同時使用3支吸入器，操作方式互相混淆，常漏掉ICS；醫師考慮簡化為合適單一複方裝置。何者最適當？", options:{A:"把所有藥物改同一顏色的吸入器，即可免除操作示範", B:"只要支數減少，不同成分與總劑量均可不核對", C:"先核對成分與適應症、避免重複LABA，實測技巧並安排轉換後控制評估", D:"三合一裝置皆可作MART緩解劑，可直接停其他急救計畫"}, ans:"C", exp:"簡化有機會改善依從性，但仍須確認藥物組合、劑量、緩解角色及實際操作[span_51](start_span)[span_51](end_span)。" },
+    { id:"A31", ch:"氣喘", q:"氣喘患者服 theophylline SR 穩定，新增 ciprofloxacin 後3天出現噁心、心悸。何項評估最適當？", options:{A:"認為 ciprofloxacin 增加 theophylline 排除，先加倍 theophylline", B:"因為使用緩釋劑型，所以可排除交互作用造成的毒性", C:"只測 ciprofloxacin 濃度即可，theophylline 不需評估", D:"懷疑代謝抑制導致 theophylline 濃度上升，及時評估濃度、心律並與醫師調整處方"}, ans:"D", exp:"Ciprofloxacin 可抑制 CYP1A2，增加 theophylline 暴露[span_52](start_span)[span_52](end_span)。噁心與心悸是重要毒性警訊[span_53](start_span)[span_53](end_span)。" },
+    { id:"A32", ch:"氣喘", q:"患者使用 theophylline，感染經評估需 macrolide 且各候選藥抗菌適用性相當。就減少 theophylline 代謝交互作用而言，何者最適當？", options:{A:"優先選 clarithromycin，並預期 theophylline 濃度下降", B:"所有 macrolides 對 theophylline 影響完全相同，不需選擇", C:"優先選 erythromycin，因其最不影響代謝", D:"優先評估 azithromycin，但仍核對QT與其他個別風險"}, ans:"D", exp:"相較 erythromycin 與 clarithromycin，azithromycin 較少造成 theophylline 代謝抑制[span_54](start_span)[span_54](end_span)。" },
+    { id:"A33", ch:"氣喘", q:"成人長期吸菸，theophylline 劑量穩定。住院後完全戒菸一週，仍照舊劑量服用，出現噁心與失眠。最合理的解釋？", options:{A:"停止煙霧暴露後酵素誘導逐漸減退，theophylline 清除可能下降，應重新評估濃度與劑量", B:"失去 nicotine 的CYP1A2抑制，導致theophylline 清除增加", C:"戒菸只改變肺功能，不會影響theophylline 藥動學", D:"只要換用 nicotine patch，就能完全維持原本煙霧的酵素誘導"}, ans:"A", exp:"吸菸的酵素誘導主要與多環芳香烴煙霧有關；戒菸後誘導減退，theophylline 清除下降暴露增加[span_55](start_span)[span_55](end_span)。" },
+    { id:"A34", ch:"氣喘", q:"氣喘患者原服 theophylline，因另一適應症開始 rifampin。最適當的追蹤策略？", options:{A:"注意酵素誘導可能降低 theophylline 濃度與療效；監測後調整，停rifampin時也須再評估", B:"先加倍 theophylline 後永久維持，不必管rifampin 何時停藥", C:"預期 theophylline 濃度必然升高，直接減量一半", D:"rifampin 只有腸胃作用，與肝代謝藥無交互作用"}, ans:"A", exp:"Rifampin 的強效酵素誘導可能增加 theophylline 清除，開始或停藥時都要追蹤調整[span_56](start_span)[span_56](end_span)。" },
+    { id:"A35", ch:"氣喘", q:"懷孕後期氣喘患者仍服 theophylline，出現心悸；總血中濃度落在原先參考範圍。最適當的評估？", options:{A:"懷孕會使所有肝代謝藥清除增加，因此不可能 theophylline 過量", B:"只要總濃度正常，應忽略所有毒性症狀", C:"考慮妊娠相關代謝及蛋白結合改變，不能僅以總濃度正常排除毒性，應整體重評", D:"立刻停掉所有ICS，以減少theophylline 的蛋白結合競爭"}, ans:"C", exp:"妊娠期蛋白結合與清除率改變，游離比例可能增加，不能僅憑總濃度正常排除毒性[span_57](start_span)[span_57](end_span)。" },
+    { id:"A36", ch:"氣喘", q:"氣喘患者使用 theophylline SR後，採血時點前後不一致，這次濃度較前次低；病人無毒性症狀，氣喘也無惡化。最適當的藥師建議？", options:{A:"所有 theophylline 劑型一律只看谷濃度，不必核對產品", B:"mg/L 與 μg/mL 相差1000倍，所以可直接把檢驗值乘1000 調藥", C:"先核對產品、用藥與採血時點、穩態及依從性，再判斷是否須重抽或調量", D:"只要單次濃度下降，立即依比例加倍劑量"}, ans:"C", exp:"1 mg/L 等於 1 μg/mL[span_58](start_span)[span_58](end_span)。緩釋劑型採樣時間不同會影響數值，應先核對時點與穩態[span_59](start_span)[span_59](end_span)。" },
+    { id:"A37", ch:"氣喘", q:"氣喘患者用 budesonide-formoterol 與 theophylline，合併肺炎；以下藥物皆已確認可涵蓋病原且無過敏。僅就原氣喘藥交互作用，何者較適當？", options:{A:"clarithromycin", B:"ciprofloxacin", C:"erythromycin", D:"amoxicillin/clavulanate"}, ans:"D", exp:"Amoxicillin/clavulanate 不抑制 CYP1A2，較少與 theophylline 產生代謝交互作用[span_60](start_span)[span_60](end_span)。" },
+    { id:"A38", ch:"氣喘", q:"氣喘控制原本穩定，開始timolol 眼藥水後反覆喘鳴。病人認為局部點眼不會影響肺部。最適當的判讀？", options:{A:"Timolol 具高度β1選擇性，因此可排除藥物誘發氣喘", B:"把原 ICS-LABA停掉即可抵銷 timolol 造成的阻塞", C:"Timolol 仍可能全身吸收並阻斷β2受體，應與眼科討論替代治療", D:"點眼後沒有進入腸胃道，所以不可能產生全身作用"}, ans:"C", exp:"Timolol 為非選擇性 β-blocker，眼藥水經鼻淚管全身吸收仍可引發嚴重的支氣管痙攣[span_61](start_span)[span_61](end_span)。", ans:"C" },
+    { id:"A39", ch:"氣喘", q:"病人有氣喘、鼻息肉，曾在服 aspirin 後明顯喘鳴。現在想自行服 ibuprofen 止痛，最適當的建議？", options:{A:"可能為AERD，ibuprofen仍有交叉風險，應由醫療人員評估適合替代藥與必要監測", B:"先加倍 SABA，再自行使用任何強COX-1抑制劑即可安全", C:"以小劑量 ibuprofen 在家自行挑戰即可確認安全", D:"只要不是 aspirin，所有NSAIDs 均不會誘發氣喘"}, ans:"A", exp:"AERD患者對所有強效 COX-1 抑制劑（包括 ibuprofen）皆具高度交叉反應風險[span_62](start_span)[span_62](end_span)。" },
+    { id:"A40", ch:"氣喘", q:"AERD 患者問為何醫師考慮在ICS-containing 治療外加白三烯路徑藥物。哪個解釋最適當？", options:{A:"Montelukast 直接抑制 COX-1，所以能根治所有 aspirin 反應", B:"加用白三烯藥後可停ICS 並在家進行 aspirin 去敏感化", C:"白三烯抑制會增加支氣管收縮，因此此類藥物理論上都禁用", D:"白三烯參與此表型的發炎與支氣管收縮，阻斷其路徑可能有幫助，但不等於可安全自行服 NSAIDs"}, ans:"D", exp:"白三烯在 AERD 中大量釋放造成支氣管收縮，LTRA 有輔助效益，但不代表可隨意服用 NSAIDs[span_63](start_span)[span_63](end_span)。" },
+    { id:"A41", ch:"氣喘", q:"成人已確認正確使用高劑量ICS-LABA，仍反覆嚴重惡化；有多年過敏史、相關過敏原致敏證據，總 IgE 及體重符合給藥表。哪個附加治療方向最吻合？", options:{A:"以靜脈 omalizumab 作即時支氣管擴張，以取代 SABA", B:"由專科評估 anti-IgE 治療 omalizumab，並維持適當控制治療", C:"以omalizumab 抑制 5-lipoxygenase，適合任何非過敏表型", D:"只憑 IgE 偏高即可停ICS 改 omalizumab 單方急救"}, ans:"B", exp:"Omalizumab 為抗 IgE 單株抗體，適用於過敏原致敏引發的重度持續性氣喘附加控制[span_64](start_span)[span_64](end_span)。" },
+    { id:"A42", ch:"氣喘", q:"重度氣喘患者在最佳化高劑量ICS-LABA後仍多次惡化，反覆血中嗜酸性球升高，無明顯過敏原致敏。最適當的下一步？", options:{A:"只要嗜酸性球升高，立即用生物製劑取代所有ICS", B:"轉由專科依惡化史、嗜酸性球及核准條件評估 anti-IL-5 或 anti-IL-5R 等治療", C:"沒有過敏致敏即可排除所有第二型發炎與生物製劑選項", D:"先改 LABA單方，確認是否真的需要抗發炎藥"}, ans:"B", exp:"嗜酸性球表現型重度氣喘可評估 anti-IL-5（如 mepolizumab）或 anti-IL-5R 治療[span_65](start_span)[span_65](end_span)。" },
+    { id:"A43", ch:"氣喘", q:"病人同時有重度第二型氣喘與明顯異位性皮膚炎，專科考慮dupilumab。下列機轉說明何者最適當？", options:{A:"直接結合游離IgE，與omalizumab 機轉完全相同", B:"作用於IL-4Rα，抑制IL-4與IL-13訊號；可依兩種疾病的適應條件整體評估", C:"作用於β2 受體，主要用來數分鐘內解除氣喘急性發作", D:"只中和IL-5，因此專門直接清除所有肥大細胞"}, ans:"B", exp:"Dupilumab 作用於 IL-4Rα，同時阻斷 IL-4 與 IL-13 傳導路徑，兼顧氣喘與異位性皮膚炎[span_66](start_span)[span_66](end_span)。" },
+    { id:"A44", ch:"氣喘", q:"氣喘患者近期剛完成 prednisolone 療程，血中嗜酸性球偏低。醫師欲評估第二型發炎及生物製劑。何者最適當？", options:{A:"考慮類固醇抑制生物標記，結合過去數值、FeNO 與適當時點重測，勿以單次低值排除", B:"單次低嗜酸性球可永久排除第二型氣喘", C:"FeNO 高低可完全取代惡化史、診斷及依從性評估", D:"既然數值低，應立即停止ICS 以提高嗜酸性球再抽血"}, ans:"A", exp:"全身性類固醇會暫時壓抑嗜酸性球數值，不可單憑用藥後的單次低值排除第二型發炎[span_67](start_span)[span_67](end_span)。" },
+    { id:"A45", ch:"氣喘", q:"成人已使用低劑量 budesonide-formoterol 作按需抗發炎緩解治療，運動時偶爾喘。依GINA相應策略，何者最適當？", options:{A:"在適用處方與劑量上限內，可於運動前使用同一ICS-formoterol，並評估控制情形", B:"每次運動前常規口服 prednisolone 即可避免再評估控制", C:"因已有 ICS-formoterol，運動前一律不可使用任何緩解劑", D:"任何運動誘發症狀都需改成LABA 單方預防"}, ans:"A", exp:"GINA 指引建議採用抗發炎緩解策略的患者，可在運動前使用 ICS-formoterol 預防運動誘發氣喘[span_68](start_span)[span_68](end_span)。" },
+    { id:"A46", ch:"氣喘", q:"孕婦因擔心胎兒而自行停掉ICS，兩週後夜間喘醒增加。最適當的說明？", options:{A:"懷孕應全面停ICS，只能忍受症狀直到生產", B:"應儘速重評並恢復合適ICS-containing 控制治療；未控制氣喘與惡化也會危害母胎", C:"懷孕期間 ICS 只能於住院時使用，門診均不適合", D:"把ICS 改成LABA單方可同時保障母胎並控制發炎"}, ans:"B", exp:"妊娠期維持氣喘控制極為重要，氣喘未受控與缺氧對胎兒的危害遠大於吸入型類固醇[span_69](start_span)[span_69](end_span)。" },
+    { id:"A47", ch:"氣喘", q:"成人氣喘控制欠佳，完全沒有胃灼熱或逆流症狀，想常規加PPI改善氣喘。最適當的判斷？", options:{A:"所有氣喘病人都應長期用PPI，不論有無症狀", B:"不應僅為改善氣喘而常規治療無症狀GERD；先處理技巧、依從性與其他可改變因素", C:"PPI 可取代ICS 作氣喘長期抗發炎治療", D:"無症狀 GERD 已證實是所有難治氣喘的主要病因"}, ans:"B", exp:"無症狀胃食道逆流的常規治療並不能改善氣喘控制，不應盲目加用 PPI[span_70](start_span)[span_70](end_span)。" },
+    { id:"A48", ch:"氣喘", q:"68 歲吸菸者有固定氣流受限，也有明確幼年氣喘及可變性症狀，目前只用LABA-LAMA。最適當的處方檢視？", options:{A:"LABA-LAMA對所有氣喘皆可等效取代ICS-LABA", B:"只要年齡大且吸菸，即可完全否定氣喘病史", C:"只有血中嗜酸性球超過300 cells/μl，氣喘患者才需要 ICS", D:"因有明確氣喘成分，應確保ICS-containing 治療，不能只沿用無ICS的雙支氣管擴張方案"}, ans:"D", exp:"合併有氣喘成分者，必須確保處方包含 ICS 抗發炎治療，不可僅給予雙支氣管擴張劑[span_71](start_span)[span_71](end_span)。" },
+    { id:"A49", ch:"氣喘", q:"成人近4週 ACT為22分、日間症狀很少，但過去一年曾因氣喘插管，且目前ICS依從性差。下列評估最適當？", options:{A:"症狀控制尚可仍不等於未來風險低，需積極處理依從性與既往重度惡化相關風險", B:"ACT 超過20分即可排除未來嚴重惡化風險", C:"只有目前每週症狀超過2天，才需考慮既往插管史", D:"應立即停止ICS，確認是否真的需要控制藥"}, ans:"A", exp:"氣喘評估包含「症狀控制」與「未來惡化風險」[span_72](start_span)[span_72](end_span)。曾插管病史是未來嚴重惡化的極高危險因子[span_73](start_span)[span_73](end_span)。" },
+    { id:"A50", ch:"氣喘", q:"成人已被處方高劑量ICS-LABA，近一年因氣喘使用4次 prednisolone。藥局紀錄顯示覆蓋率約40%，技巧錯誤；剛服類固醇後嗜酸性球偏低。何項整合判斷最適當？", options:{A:"先以處方劑量及4次惡化確立真正重度氣喘，立即選anti-IgE", B:"嗜酸性球偏低表示非第二型發炎，可直接改長期口服 prednisolone", C:"先改善藥物實際使用、技巧與可改變因素，結合治療時點重評表型，再判斷是否為真正重度氣喘", D:"只要先減重，便可停止ICS-LABA"}, ans:"C", exp:"處方高劑量不等於有效使用[span_74](start_span)[span_74](end_span)。依從性差、技巧錯誤為難治型氣喘，改善後才能判定是否為真正重度氣喘[span_75](start_span)[span_75](end_span)。" },
+    { id:"A_App1", ch:"氣喘", q:"(附錄原第3題) 28歲女性氣喘患者，使用低劑量ICS/LABA複方，仍每週需使用SABA超過2次，過去一年2次急性惡化需口服類固醇。血液嗜酸性球 450 cells/mcL，總 IgE 280 IU/mL。最適合加入的生物製劑為何？", options:{A:"Omalizumab (抗 IgE)", B:"Mepolizumab (抗 IL-5)", C:"Dupilumab (抗 IL-4R)", D:"三者皆可，無明確差異"}, ans:"B", exp:"血液嗜酸性球≥150且達450，屬於顯著嗜酸性球型氣喘，Mepolizumab 抗 IL-5 有最直接的實證支持[span_76](start_span)[span_76](end_span)。" },
+    { id:"A_App2", ch:"氣喘", q:"(附錄原第7題) 42歲氣喘患者劇烈運動後出現 FEV1 下降15%，診斷為運動誘發性支氣管痙攣 (EIB)。關於EIB的病理機制與治療，何者最正確？", options:{A:"主要機制是運動時氣道溫度升高導致肥大細胞脫顆粒", B:"預防性治療首選長效抗膽鹼藥物(LAMA)", C:"運動時氣道水分和熱量流失導致滲透壓改變，刺激肥大細胞釋放發炎介質", D:"一次EIB發作後立即再運動，支氣管收縮反應會更強"}, ans:"C", exp:"EIB核心機制為大量氣流使氣道水分與熱量流失、滲透壓升高，刺激肥大細胞釋放發炎介質引起支氣管收縮[span_77](start_span)[span_77](end_span)。" },
+    { id:"A_App3", ch:"氣喘", q:"(附錄原第12題) 35歲重度持續性氣喘患者使用高劑量 Fluticasone/Salmeterol 500/50 mcg 每次2吸 BID，症狀控制良好已維持6個月。依 GINA 指引，下一步處置為何？", options:{A:"維持原劑量直到症狀惡化", B:"考慮降階治療：減少ICS 劑量至中劑量或改為一天一次", C:"加入 Montelukast 增強控制", D:"停用 LABA，僅使用高劑量 ICS"}, ans:"B", exp:"氣喘維持穩定控制達3個月以上，應考慮逐步階梯式降階治療，尋求最低有效劑量[span_78](start_span)[span_78](end_span)。" },
+    { id:"A_App4", ch:"氣喘", q:"(附錄原第14題) 45歲氣喘患者門診追蹤，過去3個月每週需使用 Albuterol 5-6次，夜間每月醒來2次，ACT評分18分。肺功能 FEV1/FVC 68%，擴張後改善18%。最適合的起始控制治療為何？", options:{A:"繼續僅使用SABA，症狀惡化時再加藥", B:"低劑量ICS(如 Budesonide 200 mcg BID)", C:"LABA 單一治療(如 Salmeterol 50 mcg BID)", D:"高劑量 ICS/LABA 複方"}, ans:"B", exp:"持續性症狀與控制不佳患者應啟動規律控制藥物，低劑量 ICS 為氣喘長期抗發炎治療首選[span_79](start_span)[span_79](end_span)。" }
+  ],
+
+  liver: [
+    { id:"L36", ch:"肝臟疾病", q:"52 歲男性有肝硬化及高風險食道靜脈曲張，從未出血；BP 124/76 mmHg、HR 82/min。四種候選藥中，何者的作用最符合降低門靜脈壓與預防首次出血？", options:{A:"Losartan，以抑制 RAAS 作為靜脈曲張出血首選預防", B:"Propranolol，兼具β1與β2阻斷作用", C:"Prazosin，單靠α1阻斷即可取代非選擇性阻斷劑", D:"Metoprolol，選擇性β1阻斷即可達到相同門脈效益"}, ans:"B", exp:"非選擇性β阻斷劑透過β1降低心輸出量及β2阻斷造成內臟血管收縮，降低門脈流入[span_80](start_span)[span_80](end_span)。" },
+    { id:"L37", ch:"肝臟疾病", q:"原以 propranolol 預防再出血的腹水患者，近日嚴重腹瀉，BP 82/48 mmHg、HR 60/min，SCr 由 1.0 升至 2.0 mg/dL。無活動性出血。此刻處方評估何者最適當？", options:{A:"以是否有腹水決定永久禁用所有阻斷劑", B:"維持劑量，因心率已在55-60/min目標內", C:"暫停 propranolol，矯正循環不足並評估AKI，穩定後再評估恢復", D:"立即改成 carvedilol 等效劑量以減少低血壓"}, ans:"C", exp:"血壓與腎灌流優先於單一心率目標；持續明顯低血壓或 AKI 時應暫停 NSBB[span_81](start_span)[span_81](end_span)。" },
+    { id:"L38", ch:"肝臟疾病", q:"肝硬化患者吐鮮血，懷疑食道靜脈曲張破裂，無抗生素過敏。關於內視鏡前藥物處理，何者最適當？", options:{A:"先只給高劑量PPI，待確認感染後再開始抗生素", B:"先給 ceftriaxone，octreotide 須等內視鏡證實後才使用", C:"先以口服 propranolol 取代 octreotide，確認止血後才給抗生素", D:"立即開始 octreotide 並給予短期 ceftriaxone 預防感染，之後配合內視鏡止血"}, ans:"D", exp:"懷疑急性靜脈曲張破裂即應立刻給予血管活性藥（octreotide）及預防性抗生素[span_82](start_span)[span_82](end_span)。" },
+    { id:"L39", ch:"肝臟疾病", q:"肝硬化中度腹水患者，K 4.2 mmol/L、SCr 0.9 mg/dL，血壓穩定且需開始聯合利尿治療。何者最符合常用起始策略？", options:{A:"Furosemide 40 mg/day 加 hydrochlorothiazide", B:"Spironolactone 100 mg/day 加口服鉀補充", C:"Spironolactone 100 mg/day 加 furosemide 40 mg/day，依體重與電解質調整", D:"Spironolactone 25 mg/day 加 furosemide 160 mg/day"}, ans:"C", exp:"Spironolactone 與 Furosemide 以 100mg : 40mg 的比例聯合起始，能維持血鉀平衡並消除腹水[span_83](start_span)[span_83](end_span)。" },
+    { id:"L40", ch:"肝臟疾病", q:"肝硬化患者腹水及周邊水腫明顯，血鈉 126 mmol/L、血清滲透壓降低，未使用利尿劑。何者最能解釋「全身水分增加卻仍持續保水」？", options:{A:"白蛋白升高使水分進入血管，造成腎臟排水不足", B:"此為等張性低血鈉，無須區分總體水分與有效循環量", C:"全身水分增加使腎灌流必然增加，低血鈉主要來自醛固酮不足", D:"內臟血管擴張降低有效動脈循環容量，刺激 RAAS及非滲透性 ADH分泌"}, ans:"D", exp:"內臟血管擴張導致有效循環血量不足，刺激 RAAS 及 ADH 分泌，導致水滯留與稀釋性低血鈉[span_84](start_span)[span_84](end_span)。" },
+    { id:"L41", ch:"肝臟疾病", q:"頑固性腹水患者單次移除 8L 腹水，無活動性感染。院內採每移除 1L 補充 albumin 8g 的方案。何者最適當？", options:{A:"以生理食鹽水取代，兩者等效", B:"只對超過5L的3L補充，共24 g", C:"給 albumin 64g，降低穿刺後循環功能障礙風險", D:"給 albumin 8g，因補充量不隨穿刺量改變"}, ans:"C", exp:"大量腹水放液（>5L）每抽 1L 需補充 6-8g 白蛋白，8L × 8g = 64g 白蛋白以預防 PICD[span_85](start_span)[span_85](end_span)。" },
+    { id:"L42", ch:"肝臟疾病", q:"腹水患者使用 spironolactone/furosemide 控制穩定，新加 ibuprofen 後尿量減少、SCr 升高。最適當的初步建議？", options:{A:"加上 losartan 改善腎灌流", B:"增加 furosemide 劑量", C:"直接診斷不可逆 HRS", D:"停用 ibuprofen 並評估容量、感染及其他 AKI 原因，必要時暫停利尿劑"}, ans:"D", exp:"NSAID 抑制前列腺素合成，導致入球小動脈收縮，惡化腎灌流造成腎前性 AKI[span_86](start_span)[span_86](end_span)。" },
+    { id:"L43", ch:"肝臟疾病", q:"肝硬化腹水患者發燒腹痛，腹水 PMN 380 cells/mm³，培養尚無生長，屬低抗藥風險社區感染。何者最適當？", options:{A:"先以 metronidazole 單藥處理", B:"PMN 須達 500 cells/mm³ 才開始治療", C:"培養陰性可排除 SBP，先觀察48小時", D:"按 SBP 開始 ceftriaxone 或 cefotaxime，不必等培養轉陽"}, ans:"D", exp:"腹水 PMN ≥ 250 cells/mm³ 即可確立 SBP 診斷並給予第三代頭孢菌素治療，不需等待培養陽性[span_87](start_span)[span_87](end_span)。" },
+    { id:"L44", ch:"肝臟疾病", q:"60 kg 患者確診 SBP，SCr 1.7 mg/dL、總膽紅素 5 mg/dL。依第1天 1.5 g/kg 及第3天 1 g/kg 的方案，albumin 如何處方？", options:{A:"第1天 60g，第3天 90g", B:"每天 90g，持續至抗生素結束", C:"僅第1天 90g", D:"第1天 90g，第3天 60g"}, ans:"D", exp:"60 kg × 1.5 g/kg = 90g (第1天)；60 kg × 1.0 g/kg = 60g (第3天)[span_88](start_span)[span_88](end_span)。" },
+    { id:"L45", ch:"肝臟疾病", q:"患者首次 SBP 治療完成、腹水仍持續，無過敏；當地藥敏允許使用 ciprofloxacin。出院時預防何者最適當？", options:{A:"以每日 metronidazole 作長期預防", B:"感染已治癒，只有再次發燒才需抗生素", C:"評估長期次級預防，如 ciprofloxacin 或 TMP-SMX，並定期審查", D:"所有人固定服用 ceftriaxone 靜脈注射一年"}, ans:"C", exp:"SBP 治癒後再發率極高，應長期使用 ciprofloxacin 或 TMP-SMX 進行次級預防[span_89](start_span)[span_89](end_span)。" },
+    { id:"L46", ch:"肝臟疾病", q:"患者因肝性腦病變使用 lactulose 後每日8次水瀉，Na 150、K 2.9 mmol/L，意識再惡化；血氨仍偏高。最適當的處理？", options:{A:"加倍 lactulose，直到血氨正常", B:"維持劑量並永久限制飲水", C:"降低或暫停造成過度腹瀉的劑量，矯正脫水與低血鉀，再以每日2-3次軟便滴定", D:"立即停用所有降氨治療"}, ans:"C", exp:"過度腹瀉引發脫水與低血鉀，低血鉀促使腎臟產生氨反加重 HE[span_90](start_span)[span_90](end_span)。應將目標調整至每日2-3次軟便[span_91](start_span)[span_91](end_span)[span_92](start_span)[span_92](end_span)。" },
+    { id:"L47", ch:"肝臟疾病", q:"肝性腦病變患者同時曾使用 benzodiazepine。討論 flumazenil 與 lactulose 的差異，何者最適當？", options:{A:"對所有 HE 患者常規使用 flumazenil 可確定降低死亡率", B:"Flumazenil 與 lactulose 均以酸化結腸直接減少氨吸收", C:"Flumazenil 可取代 lactulose 作為長期 HE次級預防", D:"Flumazenil 可能暫時改善鎮靜相關意識障礙，但不藉由降低氨產生或吸收治療高血氨"}, ans:"D", exp:"Flumazenil 為 BZD 受體拮抗劑，僅短暫逆轉鎮靜，不具降氨作用[span_93](start_span)[span_93](end_span)。" },
+    { id:"L48", ch:"肝臟疾病", q:"患者規律服用 lactulose，每日2-3次軟便，半年內仍兩次因明顯 HE 住院。已排除出血感染便秘，出院處方何者最適當？", options:{A:"在 lactulose 基礎上加 rifaximin 550 mg BID，並持續評估誘因", B:"改成長期 neomycin 以免 rifaximin 耳毒性", C:"停 lactulose，單靠定期測血氨", D:"將 lactulose 提高到每天6-8次水便"}, ans:"A", exp:"反覆發作的肝性腦病變，指引建議在 lactulose 基礎上合併使用 rifaximin 550 mg BID[span_94](start_span)[span_94](end_span)。" },
+    { id:"L49", ch:"肝臟疾病", q:"肝硬化患者急性 HE 改善，肌肉量明顯減少；家屬要求長期無蛋白飲食以避免血氨升高。依現行照護原則何者最適當？", options:{A:"長期蛋白限制至 0.3 g/kg/day", B:"立即給極高蛋白 3 g/kg/day", C:"避免常規蛋白限制，目標約 1.2-1.5 g/kg/day 並確保熱量，可選植物或乳製蛋白", D:"只補糖不補蛋白"}, ans:"C", exp:"現代指引不常規限制蛋白質，應給予 1.2-1.5 g/kg/day 以避免肌少症惡化體內代謝氨的能力[span_95](start_span)[span_95](end_span)[span_96](start_span)[span_96](end_span)。" },
+    { id:"L50", ch:"肝臟疾病", q:"患者食道靜脈曲張出血經 EVL 成功控制，數日後血壓腎功能穩定，無 NSBB 禁忌。出院後預防再次出血何者最適當？", options:{A:"只以 PPI 長期抑酸", B:"長期口服 octreotide 取代 EVL 及 NSBB", C:"NSBB 合併定期 EVL 至曲張消除並追蹤", D:"只在黑便出現時服 propranolol"}, ans:"C", exp:"食道靜脈曲張次級預防的黃金標準是：非選擇性β阻斷劑 (NSBB) 合併結紮術 (EVL)[span_97](start_span)[span_97](end_span)。" },
+    { id:"L51", ch:"肝臟疾病", q:"肝硬化患者需診斷性腹水穿刺，INR 1.9、血小板 82,000/μL，無活動性出血。何者最符合對 INR 的臨床解讀？", options:{A:"INR 不能單獨預測肝硬化的程序出血風險，不應只為正常化 INR 常規輸FFP 而延誤低風險穿刺", B:"INR 升高表示體內不可能形成血栓", C:"所有肝硬化穿刺前均須輸 FFP 至INR<1.2", D:"INR 正常即可完全排除出血風險"}, ans:"A", exp:"肝硬化處於「再平衡凝血」狀態，INR 僅反映促凝因子減少，不能準確預測穿刺出血風險[span_98](start_span)[span_98](end_span)。" },
+    { id:"L52", ch:"肝臟疾病", q:"肝硬化患者感染後兩天內 INR 由 1.3 升至 2.1，albumin 仍為 3.3 g/dL。未使用抗凝藥。何者解讀最適當？", options:{A:"白蛋白半衰期較長，短期不變不能排除急性合成功能惡化；須整合INR、臨床與其他原因", B:"INR 只反映肝細胞壞死，與合成功能無關", C:"以ALT 是否正常作為唯一肝臟功能指標", D:"albumin 未下降即可排除肝功能惡化"}, ans:"A", exp:"白蛋白半衰期約 20 天，急性肝功能惡化早期白蛋白常維持正常，而凝血因子半衰期短會先反應於 INR[span_99](start_span)[span_99](end_span)。" },
+    { id:"L53", ch:"肝臟疾病", q:"HE 患者開始 lactulose 後腹脹、噁心，但每日2次軟便、電解質正常，意識改善，無發燒壓痛。最合理的藥師建議？", options:{A:"將排便目標增加到每天6次以消除腹脹", B:"將症狀解釋為肝功能改善，完全不需追蹤耐受性", C:"將腹脹一律視為SBP，立即停藥並長期給 metronidazole", D:"評估耐受性並適度分次調整，維持有效排便目標，不因常見輕度腸胃不適立即放棄治療"}, ans:"D", exp:"腹脹與輕度噁心為 lactulose 腸道產氣常見副作用，可微調分次服用，不應貿然停藥[span_100](start_span)[span_100](end_span)。" },
+    { id:"L54", ch:"肝臟疾病", q:"54 歲未接種 HAV 疫苗、患代償性肝硬化的男性，與確診 HAV 家人密切接觸已7天。依 CDC 建議何者最適當？", options:{A:"等IgM anti-HAV陽性才開始預防", B:"儘速給單價 HAV疫苗及免疫球蛋白，分不同部位注射", C:"開始 entecavir 預防 HAV", D:"只給免疫球蛋白，因慢性肝病禁用去活化HAV 疫苗"}, ans:"B", exp:"暴露後14天內，慢性肝病等高危險族群建議同時施打 A 型肝炎疫苗與免疫球蛋白 (IG)[span_101](start_span)[span_101](end_span)。" },
+    { id:"L55", ch:"肝臟疾病", q:"慢性 HCV 患者尚未開始 DAA；HAV IgG 陰性，HBsAg 陰性、anti-HBc 陰性、anti-HBs 陰性。最適當建議為何？", options:{A:"確認既往紀錄並安排 HAV及HBV疫苗；HCV抗體不提供A、B肝保護", B:"給 HBIG 即可同時產生 HAV及HBV 長期免疫", C:"先用 DAA 治好HCV，便可免除HAV及HBV 疫苗", D:"anti-HBc 陰性表示已由 HBV 疫苗取得免疫"}, ans:"A", exp:"慢性肝病患者若無 A、B 肝免疫力，應儘速完整接種疫苗以防止重疊感染引發急性肝衰竭[span_102](start_span)[span_102](end_span)。" },
+    { id:"L56", ch:"肝臟疾病", q:"病人 HBsAg 陰性、anti-HBs 陰性、total anti-HBc 陽性，單次 HBV DNA 未檢測。何者最正確？", options:{A:"可確定是急性HBV", B:"可確定肝內存在病毒且必須立即終身服藥", C:"屬 isolated anti-HBc 型態，可能原因不只一種，不能單憑此斷定隱匿性 HBV感染", D:"可確定是疫苗免疫，因anti-HBc 由疫苗誘發"}, ans:"C", exp:"孤立性 anti-HBc 陽性可能為過去感染遠期抗體衰退、偽陽性或隱匿性感染，需進一步評估[span_103](start_span)[span_103](end_span)[span_104](start_span)[span_104](end_span)。" },
+    { id:"L57", ch:"肝臟疾病", q:"淋巴瘤患者將用 rituximab，手上只有 anti-HBs 陽性的舊報告。何者最適合判斷再活化風險？", options:{A:"只驗ALT", B:"只驗 HBeAg", C:"anti-HBs 陽性已完全排除再活化", D:"補驗 HBsAg 及 total anti-HBc，並依結果評估 HBV DNA 與預防策略"}, ans:"D", exp:"使用 Rituximab 等強烈抑制 B 細胞藥物前，必須檢測 HBsAg 與 anti-HBc 評估 B 肝病毒再活化風險[span_105](start_span)[span_105](end_span)。" },
+    { id:"L58", ch:"肝臟疾病", q:"HBsAg 陰性、anti-HBc 陽性、HBV DNA 未檢出的患者即將接受 rituximab，eGFR 正常。下列處方何者最適合？", options:{A:"Adefovir 優先", B:"不需任何預防或追蹤", C:"Entecavir，於免疫抑制前或開始時啟動並規畫停療後追蹤", D:"Lamivudine優先，因抗藥屏障高"}, ans:"C", exp:"高風險免疫抑制（如 Rituximab）建議使用高抗藥屏障藥物（Entecavir、TDF 或 TAF）進行預防[span_106](start_span)[span_106](end_span)。" },
+    { id:"L59", ch:"肝臟疾病", q:"72 歲慢性 HBV 患者需口服抗病毒治療，無肝硬化；eGFR 48、骨質疏鬆。候選 TDF 與 TAF 間，何者最適當？", options:{A:"選TDF 因其血中 tenofovir 暴露較低", B:"若無其他限制，可選TAF以降低相對腎骨毒性風險，仍需腎功能監測", C:"TAF 是 TDF的活性代謝物，兩者安全性相同", D:"先以 lamivudine 取代所有 tenofovir 製劑"}, ans:"B", exp:"TAF 進入標的細胞效率高，血漿 Tenofovir 濃度比 TDF 低約 90%，對腎臟及骨質負擔明顯降低[span_107](start_span)[span_107](end_span)[span_108](start_span)[span_108](end_span)。" },
+    { id:"L60", ch:"肝臟疾病", q:"HBV 患者長期 lamivudine 後病毒反彈，已證實抗藥突變，腎功能正常。候選策略何者最適當？", options:{A:"維持 lamivudine 並單純加倍劑量", B:"Entecavir 0.5 mg/day，因 lamivudine 抗藥不影響", C:"改用 telbivudine", D:"改採對 lamivudine 抗藥病毒有效的 tenofovir 方案"}, ans:"D", exp:"Lamivudine 抗藥者對 Entecavir 及 Telbivudine 具交叉抗藥性，應改用 Tenofovir (TDF/TAF)[span_109](start_span)[span_109](end_span)[span_110](start_span)[span_110](end_span)。" },
+    { id:"L61", ch:"肝臟疾病", q:"孕婦30週，HBsAg 陽性、HBV DNA 1,200,000 IU/mL，腎功能正常。依預防垂直傳染建議何者最完整？", options:{A:"孕期使用 peginterferon，嬰兒只接種 HAV 疫苗", B:"孕婦用 TDF即可取代嬰兒 HBIG 與疫苗", C:"評估現在開始TDF；嬰兒出生12小時內分部位接種 HBV 疫苗與 HBIG，後續完成系列及檢測", D:"只要ALT 正常就不需評估孕期抗病毒"}, ans:"C", exp:"高病毒量孕婦第三孕期使用 TDF，且新生兒於出生 12 小時內完成 HBIG 與第一劑疫苗注射[span_111](start_span)[span_111](end_span)[span_112](start_span)[span_112](end_span)。" },
+    { id:"L62", ch:"肝臟疾病", q:"慢性 HBV 患者有腹水及曾發生 HE，Child-Pugh B，HBV DNA 升高。對治療選擇何者最適當？", options:{A:"避免 peginterferon，評估高抗藥屏障核苷(酸)類藥物及移植需求", B:"以 ribavirin 單藥處理 HBV", C:"選 peginterferon，因固定療程可避免肝衰竭", D:"只要ALT低於兩倍 ULN就不治療"}, ans:"A", exp:"代償不全肝硬化（Child-Pugh B/C）絕對禁用干擾素（引發肝衰竭），應選用口服抗病毒藥物[span_113](start_span)[span_113](end_span)。" },
+    { id:"L63", ch:"肝臟疾病", q:"新診斷 HIV 及慢性 HBV，尚未使用 ART，eGFR 正常。何種策略最能避免 HIV 抗藥？", options:{A:"只用 lamivudine 單藥同時長期治療兩種感染", B:"只用 entecavir 單藥", C:"完整抑制 HIV的ART中納入TDF 或TAF加FTC或3TC等雙重抗HBV 活性骨幹", D:"先治HBV，任何抗HBV藥皆不影響HIV抗藥風險"}, ans:"C", exp:"HBV/HIV 共感染患者應使用涵蓋雙重抗 HBV 活性的完整 ART 處方（如 TDF/TAF + FTC/3TC）[span_114](start_span)[span_114](end_span)。" },
+    { id:"L64", ch:"肝臟疾病", q:"患者 anti-HCV 陽性，HCV RNA 未檢出，ALT 為 2倍ULN；10天前曾共用針具。何者為最適當的判讀？", options:{A:"目前尚無病毒血症證據，但近期暴露不能僅憑一次陰性排除，安排RNA追蹤並評估其他ALT 上升原因", B:"抗體陽性合併ALT上升已確診現行HCV，應直接給 DAA", C:"RNA 陰性代表已有免疫，未來不需再測", D:"只追蹤抗體是否轉陰"}, ans:"A", exp:"曾共用針具暴露於空窗期內，單次 RNA 陰性無法排除近期急性感染，須追蹤 HCV RNA[span_115](start_span)[span_115](end_span)。" },
+    { id:"L65", ch:"肝臟疾病", q:"初治 HCV 第3型患者有 Child-Pugh B 肝硬化，可使用 ribavirin。依指引何者最適當？", options:{A:"Sofosbuvir/velpatasvir/voxilaprevir 12週", B:"Sofosbuvir/velpatasvir加 ribavirin 12 週並由專科管理", C:"Glecaprevir/pibrentasvir 8週", D:"Elbasvir/grazoprevir 12週"}, ans:"B", exp:"代償不全肝硬化禁用含蛋白酶抑制劑方案；SOF/VEL + RBV 12 週為建議選擇[span_116](start_span)[span_116](end_span)[span_117](start_span)[span_117](end_span)。" },
+    { id:"L66", ch:"肝臟疾病", q:"HCV 初治患者 Child-Pugh B 且有持續性嚴重貧血，判定不適用 ribavirin。指引候選療程何者最適當？", options:{A:"Sofosbuvir/velpatasvir/voxilaprevir 24週", B:"Sofosbuvir/velpatasvir 24週，持續專科與移植需求評估", C:"Glecaprevir/pibrentasvir 8週", D:"Sofosbuvir/velpatasvir 12 週"}, ans:"B", exp:"無法耐受或禁用 Ribavirin 的失代償患者，SOF/VEL 療程應延長至 24 週[span_118](start_span)[span_118](end_span)[span_119](start_span)[span_119](end_span)。" },
+    { id:"L67", ch:"肝臟疾病", q:"透析患者 HCV 初治、無肝硬化，已評估適合 SOF/VEL。藥師看到舊筆記寫「eGFR<30禁用 sofosbuvir」，何者最適當？", options:{A:"SOF/VEL 一律減為半錠", B:"依現行仿單 SOF/VEL 可用於透析且不需腎功能減量，另審查其他藥及 RBV 需求", C:"所有含 sofosbuvir 方案仍絕對禁用於透析", D:"等待腎移植後才可以治療"}, ans:"B", exp:"現行仿單更新允許透析病患使用 SOF/VEL，且不需因腎功能調整劑量[span_120](start_span)[span_120](end_span)[span_121](start_span)[span_121](end_span)。" },
+    { id:"L68", ch:"肝臟疾病", q:"患者準備開始 SOF/VEL，仍必須每日使用 omeprazole 20 mg。依仿單給藥規定何者最適當？", options:{A:"SOF/VEL 與 omeprazole 40 mg 空腹同服", B:"兩者相隔1小時即可", C:"SOF/VEL 隨餐服用，4小時後才服 omeprazole 20mg；仍應避免不必要 PPI", D:"先服 omeprazole 20mg，4小時後空腹服 SOF/VEL"}, ans:"C", exp:"SOF/VEL 仿單規定若必須與 PPI 併用，應隨餐服用 SOF/VEL，並於 4 小時後再服用 omeprazole 20mg[span_122](start_span)[span_122](end_span)[span_123](start_span)[span_123](end_span)。" },
+    { id:"L69", ch:"肝臟疾病", q:"HCV 患者因心律不整服用 amiodarone，心率 58/min，即將開始含 sofosbuvir 處方。何者最適當？", options:{A:"維持兩藥但相隔12小時", B:"此交互作用僅涉及胃酸，加入PPI即可解決", C:"先與相關專科協調替代方案，因併用可致嚴重症狀性心搏過慢，不能只錯開服藥", D:"將 amiodarone 減半即可保證不需監測"}, ans:"C", exp:"Sofosbuvir 類藥物與 Amiodarone 併用可致致命性心搏過緩，禁止併用或需嚴格住院監控心律[span_124](start_span)[span_124](end_span)。" },
+    { id:"L70", ch:"肝臟疾病", q:"HCV 患者計畫開始 DAA，HBsAg 陽性、HBV DNA可測到但ALT正常。何者最適當？", options:{A:"評估 HBV 治療適應症，並在DAA前規畫 HBV預防或密切DNA監測，避免再活化", B:"ALT 正常排除HBV再活化，不需任何追蹤", C:"DAA 同時可根除HBV，所以不用再驗 HBV DNA", D:"一律延後所有HCV治療，直到 HBsAg 自然轉陰"}, ans:"A", exp:"DAA 快速清除 C 肝後可能誘發 B 肝病毒爆發性再活化，需在治療前評估並預防給藥或密切監測[span_125](start_span)[span_125](end_span)。" },
+    { id:"L71", ch:"肝臟疾病", q:"有肝硬化的 HCV 患者完成 DAA，停藥12週 HCV RNA陰性；仍有持續注射藥物暴露風險。追蹤何者最適當？", options:{A:"持續肝癌監測；評估再感染用 HCV RNA 而非重複抗體，並提供減害措施", B:"每年只追蹤 anti-HCV 轉陰", C:"SVR12 後可停止肝硬化相關肝癌監測", D:"治癒後具終身免疫"}, ans:"A", exp:"已硬化者達到 SVR 後仍有肝癌風險需持續篩檢；治癒後抗體仍為陽性，懷疑再感染需檢驗 HCV RNA[span_126](start_span)[span_126](end_span)。" },
+    { id:"L72", ch:"肝臟疾病", q:"新用藥後 ALT 600 U/L (ULN 40)、ALP 180 U/L (ULN 120)，總膽紅素正常。下列型態解讀何者最適當？", options:{A:"R=10，屬肝細胞型；目前不符合合併高膽紅素的Hy's law 訊號，也尚未證實藥物因果", B:"R=3.3，屬混合型", C:"R=1.5，屬膽汁鬱積型", D:"R=10，屬肝細胞型；因此無論膽紅素是否升高皆符合Hy's law"}, ans:"A", exp:"R = (600/40) / (180/120) = 15 / 1.5 = 10 (R ≥ 5 為肝細胞損傷型)；Hy's law 尚需總膽紅素 > 2倍 ULN[span_127](start_span)[span_127](end_span)。" },
+    { id:"L73", ch:"肝臟疾病", q:"服新藥6週後 ALT 8倍ULN、總膽紅素 3倍ULN、ALP 1.2倍 ULN，超音波無阻塞。何者對 Hy's law 的解讀最適當？", options:{A:"是須警覺嚴重肝損傷的訊號，但仍要排除其他病因，不能當作藥物因果的單一證明", B:"ALP 未達3倍ULN所以完全無肝損傷", C:"只要符合數值即確定藥物是唯一病因", D:"只預測皮疹風險"}, ans:"A", exp:"肝細胞損傷併顯著黃疸且排除膽道阻塞符合 Hy's law，死亡率達 10-50%，但仍需排除病毒感染等病因[span_128](start_span)[span_128](end_span)。" },
+    { id:"L74", ch:"肝臟疾病", q:"患者 amoxicillin/clavulanate 停藥後兩週出現搔癢及黃疸；ALT 120 (ULN 40)、ALP 480 (ULN 120)。何者最適當？", options:{A:"R=0.75 偏膽汁鬱積型，停藥後延遲發作仍可能相關，需排除其他原因", B:"影像無膽管擴張即可證實為病毒性肝炎", C:"已停藥兩週即可排除藥物性肝病", D:"R=4屬混合型"}, ans:"A", exp:"R = (120/40) / (480/120) = 3 / 4 = 0.75 (R ≤ 2 為膽汁鬱積型)；Augmentin 肝毒性具延遲發作特徵[span_129](start_span)[span_129](end_span)。" },
+    { id:"L75", ch:"肝臟疾病", q:"疑似藥物性肝炎停藥後 ALT 下降；主管詢問是否以再次給藥「確診」。患者先前有黃疸。何者最適當？", options:{A:"再次給藥是所有DILI診斷的必要步驟", B:"結合時序、去藥反應與其他病因排除評估，不應為證明因果而刻意再暴露", C:"只要停藥後改善即可排除病毒性肝炎", D:"所有疑似 DILI必須先切片才能停藥"}, ans:"B", exp:"刻意再給藥 (rechallenge) 可能導致暴發性致命肝衰竭，臨床上絕對禁止刻意為診斷而再暴露[span_130](start_span)[span_130](end_span)[span_131](start_span)[span_131](end_span)。" },
+    { id:"L76", ch:"肝臟疾病", q:"體重 60kg 成人一次吞服 acetaminophen 15 g 後2小時就醫，無緩釋劑。初次 ALT 正常。何者最適當？", options:{A:"等黃疸出現才測濃度並考慮 NAC", B:"用2小時濃度直接套 Rumack-Matthew 圖即可排除毒性", C:"以ALT 正常證明未形成 NAPQI，直接返家", D:"安排服後至少4小時的血中濃度並依適用列線圖判斷；ALT正常不能排除後續毒性"}, ans:"D", exp:"Rumack-Matthew 列線圖需在服藥後滿 4 小時採血濃度才具判讀意義；急性中毒初期轉胺酶常正常[span_132](start_span)[span_132](end_span)。" },
+    { id:"L77", ch:"肝臟疾病", q:"已知一次吞服 acetaminophen 20g 的成人，9小時後才就醫，檢驗濃度尚需2小時。何者最適當？", options:{A:"在抽血及毒物諮詢同時立即開始NAC，不因等濃度而再延誤", B:"以正常意識狀態排除肝毒性", C:"超過8小時 NAC 已完全無效", D:"必須等濃度回報才可給NAC"}, ans:"A", exp:"攝入高毒性劑量且已超過 8 小時黃金治療窗，應立即抽血並立即開始輸注 NAC，不可等待報告延誤治療[span_133](start_span)[span_133](end_span)。" },
+    { id:"L78", ch:"肝臟疾病", q:"患者連續3天使用多種感冒止痛藥，估計每日 acetaminophen 6-8g，現 ALT 900 U/L。何者最適當？", options:{A:"只要濃度低於治療圖線即可忽略ALT升高", B:"以最後一劑當作唯一攝入時間套圖", C:"此為每日分次服用，絕不可能造成NAPQI毒性", D:"按重複超量攝入評估濃度與肝損傷並考慮 NAC，不將單一濃度硬套急性列線圖"}, ans:"D", exp:"Rumack-Matthew 列線圖僅適用於單次急性過量，分次或重複超量中毒不可硬套列線圖，應立即給予 NAC[span_134](start_span)[span_134](end_span)[span_135](start_span)[span_135](end_span)。" },
+    { id:"L79", ch:"肝臟疾病", q:"潛伏結核患者使用 isoniazid 後噁心、厭食，ALT 4倍ULN。相較於無症狀者的監測門檻，何者最適當？", options:{A:"有肝炎症狀且轉胺酶超過3倍ULN，應暫停並評估肝傷害", B:"必須等有症狀且ALT超過10倍ULN才停藥", C:"加入 pyridoxine 即可治療肝炎", D:"ALT 未達5倍ULN所以無論有無症狀都應維持"}, ans:"A", exp:"抗結核藥物肝毒性停藥標準：伴隨肝炎症狀時轉胺酶 > 3倍 ULN，或無症狀時轉胺酶 > 5倍 ULN 應停藥[span_136](start_span)[span_136](end_span)。" },
+    { id:"L80", ch:"肝臟疾病", q:"患者使用具肝毒性藥物，近日厭食、倦怠、深色尿；ALT 7倍ULN、ALP 1.4倍 ULN。何者最適當？", options:{A:"及時評估並停用可疑藥；肝細胞型表現不需有皮疹，仍須排除病毒及膽道等其他病因", B:"無皮疹即可排除藥物相關肝損傷", C:"已知膽結石足以確定病因", D:"無右上腹痛表示未達肝炎症狀標準"}, ans:"A", exp:"深色尿與全身倦怠為早期肝損傷警訊；特異體質肝毒性不一定伴隨發疹或嗜酸性球增加[span_137](start_span)[span_137](end_span)。" },
+    { id:"L81", ch:"肝臟疾病", q:"疑似急性重度 DILI 患者，ALT 從 2400 降至 900 U/L，但 INR 由 1.8 升至 3.1、出現意識混亂。何者最適當？", options:{A:"白蛋白尚正常即可排除急性肝衰竭", B:"ALT 下降即代表肝細胞完全恢復", C:"警覺急性肝衰竭並緊急轉專科/移植中心，不能只因ALT 下降就認定好轉", D:"先等 ALT 完全正常後才評估凝血與意識"}, ans:"C", exp:"轉胺酶劇降但凝血 INR 與意識同時惡化，代表肝細胞大片壞死耗竭，為猛爆性急性肝衰竭危象！[span_138](start_span)[span_138](end_span)" },
+    { id:"L82", ch:"肝臟疾病", q:"骨質疾病患者開始新藥後 ALP 為 2.5倍ULN，ALT正常、膽紅素正常。何者最適當？", options:{A:"ALP 超過2倍ULN即可確診藥物性膽管損傷", B:"先確認 ALP 是否為肝膽來源，例如GGT及必要影像，不單靠ALP就判定膽汁鬱積型 DILI", C:"停藥後必須刻意再給藥", D:"ALT 正常即代表所有肝膽疾病皆已排除"}, ans:"B", exp:"ALP 同時存在於骨骼與肝膽組織，當單獨升高時需配合 GGT 或同功酶確認來源[span_139](start_span)[span_139](end_span)。" },
+    { id:"L83", ch:"肝臟疾病", q:"患者黃疸、ALT 9倍ULN；三週前開始網購減重膠囊，停用一週 ALT 降至 6倍ULN。因果評估何者最適當？", options:{A:"將補充品納入可疑來源，保留產品批次並排除其他病因；停用後下降支持但不證實因果", B:"處方藥未變即可排除所有藥物引起的肝病", C:"停用後 ALT 下降已足以證實，無須病毒檢測", D:"成分未完全標示就不能記錄"}, ans:"A", exp:"保健食品與中草藥亦為 DILI 常見原因，去藥反應具支持性但仍需系統性排除其他肝炎病因[span_140](start_span)[span_140](end_span)。" },
+    { id:"L84", ch:"肝臟疾病", q:"患者長期 amiodarone 後疑似肝損傷，已停藥一週但肝指數尚未正常。何者最合理？", options:{A:"所有DILI 停藥後48小時都應恢復正常", B:"半衰期長表示肝毒性只可能在第一劑發生", C:"停藥一週未正常即可排除 amiodarone 肝毒性", D:"因藥物及代謝物組織蓄積、半衰期長，短期未正常不排除相關性，仍需追蹤與排除其他病因"}, ans:"D", exp:"Amiodarone 半衰期長達數週至數月且親脂性蓄積於脂肪與肝臟組織，去藥後肝指數回復甚慢[span_141](start_span)[span_141](end_span)。" },
+    { id:"L85", ch:"肝臟疾病", q:"乾癬患者使用低劑量 methotrexate，有肥胖、糖尿病及飲酒習慣，近期反覆 ALT 升高。何者最適當？", options:{A:"低劑量 MTX不可能造成肝傷害", B:"所有 MTX 患者都必須每年肝切片", C:"審查酒精、代謝性肝病及併用藥，評估暫停 MTX 與纖維化風險，依情況採非侵入或專科檢查", D:"只要補充 folic acid 就能完全避免所有肝毒性"}, ans:"C", exp:"MTX 具長期肝纖維化風險，代謝症候群與飲酒加成危險性，應定期進行非侵入性纖維化監測[span_142](start_span)[span_142](end_span)。" },
+    { id:"L_App16", ch:"肝臟疾病", q:"(附錄第16題) 68歲男性肝硬化 (Child-Pugh B) 因腹水使用 Spironolactone 100mg + Furosemide 40mg，體重每日減 0.8kg，SCr 從 1.2 升至 2.3 mg/dL，意識混亂。處置何者最適當？", options:{A:"維持利尿劑劑量不變，加上Lactulose", B:"立即停用所有利尿劑，並進行腹腔穿刺", C:"將利尿劑劑量減半並監測腎功能", D:"停用利尿劑，給予白蛋白輸注，並開始 Rifaximin 合併 Lactulose 治療"}, ans:"D", exp:"出現腎功能不全 (SCr>2.0) 與肝性腦病變為利尿劑停藥指標；應停藥擴充血容量並積極治療 HE[span_143](start_span)[span_143](end_span)。" },
+    { id:"L_App17", ch:"肝臟疾病", q:"(附錄第17題) 52歲女性急性上腹痛發燒診斷為 SBP，腹水 PMN 420 cells/mm³，SCr 1.6 mg/dL，總膽紅素 4.8 mg/dL。最適合的治療方案為何？", options:{A:"Cefotaxime 2 g IV q8h × 5天", B:"Ofloxacin 400 mg PO q12h × 8天", C:"Cefotaxime 2g IV q8h × 5天 + 診斷6小時內白蛋白 1.5g/kg，第3天 1g/kg", D:"Levofloxacin 500 mg IV QD + Metronidazole"}, ans:"C", exp:"高風險 SBP（Cr≥1 或 Bilirubin≥4）合併輸注白蛋白（第1天 1.5g/kg，第3天 1g/kg）能大幅降低肝腎症候群與死亡率[span_144](start_span)[span_144](end_span)。" },
+    { id:"L_App18", ch:"肝臟疾病", q:"(附錄第18題) 45歲慢性B肝患者 HBV DNA 28,000 IU/mL、ALT 145 U/L，正在服用 Lithium 控制雙極性情感疾患。考慮抗病毒藥物，何者最適當且需特別監測？", options:{A:"Entecavir 0.5mg QD；監測精神狀態", B:"TAF 25mg QD；監測骨密度", C:"Pegylated interferon alfa；監測甲狀腺", D:"TDF 300 mg QD；監測 Lithium 血中濃度與腎功能"}, ans:"D", exp:"TDF 具潛在腎小管毒性，若腎清除下降會直接導致狹窄治療指數之 Lithium 排泄障礙引起中毒[span_145](start_span)[span_145](end_span)[span_146](start_span)[span_146](end_span)。" },
+    { id:"L_App19", ch:"肝臟疾病", q:"(附錄第19題) 62歲男性因淋巴瘤將接受 R-CHOP (含Rituximab)。篩檢 HBsAg (-)、Anti-HBc (+)、Anti-HBs (-)。此患者屬於何種狀態？最適當處置？", options:{A:"過去感染已痊癒有免疫力，無需處理", B:"隱匿性B肝感染，應在化療前開始預防性 Entecavir，持續至化療結束後6-12個月", C:"急性B肝感染，延後化療", D:"補打B肝疫苗後再開始化療"}, ans:"B", exp:"Anti-HBc 陽性使用 Rituximab 屬極高再活化風險，必須常規使用 Entecavir 或 Tenofovir 預防[span_147](start_span)[span_147](end_span)。" },
+    { id:"L_App20", ch:"肝臟疾病", q:"(附錄第20題) 58歲女性慢性C肝計劃開始 Ledipasvir/Sofosbuvir，目前使用 Omeprazole 40mg QD、Atorvastatin 40mg QD。處置何者最適當？", options:{A:"維持所有藥物不變直接開始", B:"停用 Omeprazole，改用 Famotidine (與DAA間隔12小時)，Atorvastatin 減量至20 mg", C:"停用 Atorvastatin，Omeprazole 減量至20mg 間隔4小時", D:"改用 Glecaprevir/Pibrentasvir"}, ans:"B", exp:"PPI 降低 Ledipasvir 吸收；DAA 亦提高 Statin 濃度。改用 H2RA 錯開12小時並調降 Statin 為標準處置[span_148](start_span)[span_148](end_span)。" },
+    { id:"L_App31", ch:"肝臟疾病", q:"(附錄第31題) 55歲慢性B肝患者，5年前曾使用 Lamivudine 治療6個月後自行停藥。下列藥物選擇何者最正確？", options:{A:"應選用 Entecavir 0.5mg QD", B:"應選用 Entecavir 1.0 mg QD", C:"應優先選用 Tenofovir (TDF 或TAF)，因為對 Lamivudine 抗藥者仍有效", D:"應先進行抗藥性檢測"}, ans:"C", exp:"曾有 Lamivudine 暴露易對 Entecavir 產生交叉抗藥性，首選藥物為無交叉抗藥之 Tenofovir[span_149](start_span)[span_149](end_span)。" },
+    { id:"L_App32", ch:"肝臟疾病", q:"(附錄第32題) 28歲孕婦(懷孕32週)發現 HBsAg 陽性、HBeAg (+)、HBV DNA 1,500,000 IU/mL。關於預防垂直傳染何者最適當？", options:{A:"立即開始 Entecavir 治療", B:"在懷孕第三期開始使用 Tenofovir disoproxil (TDF)，嬰兒出生後24小時內注射HBIG+疫苗", C:"不需使用抗病毒藥物，僅嬰兒接種疫苗", D:"使用 Pegylated interferon 治療"}, ans:"B", exp:"孕婦病毒量 > 200,000 IU/mL，應於懷孕第 28-32 週開始服用 TDF 預防母嬰垂直感染[span_150](start_span)[span_150](end_span)[span_151](start_span)[span_151](end_span)。" },
+    { id:"L_App33", ch:"肝臟疾病", q:"(附錄第33題) 60歲慢性C肝患者(基因型3)確診為代償不全肝硬化 (Child-Pugh C)。下列何種DAA治療方案最適合？", options:{A:"Glecaprevir/Pibrentasvir 12 週", B:"Sofosbuvir/Velpatasvir + Ribavirin 12 週", C:"Ledipasvir/Sofosbuvir 12 週", D:"Sofosbuvir/Velpatasvir/Voxilaprevir 12週"}, ans:"B", exp:"代償不全患者禁用蛋白酶抑制劑(-previr)；SOF/VEL + RBV 是泛基因型適用且無蛋白酶抑制劑之首選[span_152](start_span)[span_152](end_span)。" },
+    { id:"L_App34", ch:"肝臟疾病", q:"(附錄第34題) 70歲末期腎病變(ESRD)規律透析患者確診慢性C肝 (基因型1b、無肝硬化)。何種DAA治療方案最適合且安全？", options:{A:"Ledipasvir/Sofosbuvir", B:"Glecaprevir/Pibrentasvir (Mavyret)，因為可用於洗腎患者", C:"Sofosbuvir/Velpatasvir 劑量減半", D:"暫不治療等待腎移植"}, ans:"B", exp:"Glecaprevir/Pibrentasvir 經由肝膽排泄，不需依腎功能調整劑量，為嚴重腎病變之推薦處方[span_153](start_span)[span_153](end_span)。" },
+    { id:"L_App35", ch:"肝臟疾病", q:"(附錄第35題) 52歲肝硬化患者因肝性腦病變住院使用 Lactulose 治療。下列關於治療監測與目標何者最正確？", options:{A:"治療目標為每日排便1次，血氨降至正常", B:"治療目標為每日2-3次軟便，並監測血清電解質", C:"若3天內無效立即停用改 Rifaximin 單藥", D:"劑量應根據血氨濃度進行調整"}, ans:"B", exp:"Lactulose 的臨床監測目標為每日 2-3 次軟便，治療應以臨床神經症狀改善而非血氨數值為導向[span_154](start_span)[span_154](end_span)[span_155](start_span)[span_155](end_span)。" }
+  ],
+
+  pud: [
+    { id:"P31", ch:"消化性潰瘍", q:"56 歲男性胃潰瘍且尿素呼氣測試陽性，無藥物過敏，過去曾使用 azithromycin，抗藥性未知。採 ACG 2024，下列14天處方何者最適合作為經驗性初治？", options:{A:"PPI + amoxicillin + clarithromycin", B:"PPI + bismuth + tetracycline + metronidazole", C:"PPI + amoxicillin + levofloxacin", D:"PPI + amoxicillin + metronidazole"}, ans:"B", exp:"抗藥性未知且有大環內酯暴露史時，ACG 2024 首選 14 天最佳化鉍劑四合一療法[span_156](start_span)[span_156](end_span)[span_157](start_span)[span_157](end_span)。" },
+    { id:"P32", ch:"消化性潰瘍", q:"藥敏證實 H. pylori 對 clarithromycin 敏感。病人持有「PPI+amoxicillin+clarithromycin」處方，卻自行停 amoxicillin 改加 bismuth。藥師判斷何者最適當？", options:{A:"bismuth 可以單獨取代所有 β-lactam", B:"應恢復原經確認的處方；替換後僅三種藥，也不符合標準鉍劑四合一組合", C:"只要維持 PPI 和 clarithromycin，療效相同", D:"加入 bismuth 即可把三合一轉為四合一"}, ans:"B", exp:"標準鉍劑四合一為 PPI + 鉍劑 + Tetracycline + Metronidazole，不可自行拼湊或任意替換[span_158](start_span)[span_158](end_span)。" },
+    { id:"P33", ch:"消化性潰瘍", q:"H. pylori 根除失敗準備使用 ACG 2024 最佳化鉍劑四合一。草稿處方為 PPI BID、bismuth QID、tetracycline 500mg BID、metronidazole 500mg TID。最應優先修正何處？", options:{A:"把PPI減為QD", B:"Tetracycline 改為500mg QID，其餘仍須按完整處方核對", C:"把 tetracycline 延長至28天", D:"把 bismuth 減為睡前一次"}, ans:"B", exp:"最佳化鉍劑四合一中的四環黴素 (Tetracycline) 標準劑量應為 500 mg QID[span_159](start_span)[span_159](end_span)。" },
+    { id:"P34", ch:"消化性潰瘍", q:"患者完成 PPI+amoxicillin+clarithromycin 失敗複驗仍陽性；未曾用鉍劑四合一。採 ACG 2024 下一線策略何者最佳？", options:{A:"改用 levofloxacin 三合一", B:"原三合一再開14天", C:"改用14天最佳化鉍劑四合一，並再檢查依從性與用法", D:"直接把 clarithromycin 加倍"}, ans:"C", exp:"Clarithromycin 治療失敗後易產生繼發性抗藥，下一線應切換為最佳化鉍劑四合一[span_160](start_span)[span_160](end_span)。" },
+    { id:"P35", ch:"消化性潰瘍", q:"病人 H. pylori 根除失敗，自述兒童期服 amoxicillin 後曾出皮疹無呼吸困難；現考慮含 amoxicillin 方案。最適當作法？", options:{A:"永久排除所有 β-lactam", B:"直接給全劑量", C:"改用 ampicillin 避開過敏", D:"轉介作合適的 penicillin 過敏風險評估及必要測試，再決定是否解除標籤"}, ans:"D", exp:"自述青黴素過敏常非真正 IgE 介導過敏，評估或脫敏能保留極具療效且低抗藥性的 amoxicillin[span_161](start_span)[span_161](end_span)。" },
+    { id:"P36", ch:"消化性潰瘍", q:"患者完成根除療程2週，仍每天服 PPI，要求立刻做尿素呼氣測試 (UBT)。何種安排最能減少偽陰性？", options:{A:"現在先測，陰性即可確認根除", B:"至少距抗生素及鉍劑結束4週，且停PPI至少2週後再檢測", C:"只須停 PPI一天", D:"改驗 H. pylori IgG"}, ans:"B", exp:"抗生素與鉍劑抑制細菌需停藥4週，PPI 抑制尿素酶活性需停藥2週，以防止檢測偽陰性[span_162](start_span)[span_162](end_span)[span_163](start_span)[span_163](end_span)。" },
+    { id:"P37", ch:"消化性潰瘍", q:"病人3年前根除 H. pylori，現因上腹不適檢出 IgG 陽性；近月未用藥且無警訊。醫師擬重開舊療法。建議何者最佳？", options:{A:"先以IgG 濃度高低決定是否存在活菌", B:"直接照舊療法重治", C:"改做糞便潛血陰性即可排除", D:"先以UBT 或適當糞便抗原確認現行感染；若陽性，再依既往用藥選擇方案"}, ans:"D", exp:"血清 IgG 抗體治癒後仍會長年陽性，不可作為現行活動性感染之診斷，應採用 UBT 或糞便抗原[span_164](start_span)[span_164](end_span)[span_165](start_span)[span_165](end_span)。" },
+    { id:"P38", ch:"消化性潰瘍", q:"潰瘍出血患者住院接受 PPI，胃鏡 RUT 快速尿素酶陰性，擬註記「排除 H. pylori」。最適當建議？", options:{A:"急性出血與PPI可能使結果偽陰性，穩定後按停藥規範複驗", B:"快速尿素酶陰性在出血時排除力最高", C:"只要看到潰瘍就直接認定感染", D:"改用 IgG 追蹤數天"}, ans:"A", exp:"急性消化道出血與進行性 PPI 治療均會顯著降低快速尿素酶試驗敏感度，日後應安排複驗[span_166](start_span)[span_166](end_span)。" },
+    { id:"P39", ch:"消化性潰瘍", q:"63 歲女性長期使用 naproxen，胃鏡確認胃潰瘍。醫師認為病因已確定是 NSAID，不必檢測 H. pylori。最適當回應？", options:{A:"是否檢測只取決於有無 GERD", B:"NSAID 潰瘍患者不可能同時感染 H. pylori", C:"只要根除 H. pylori 就可不評估胃保護", D:"NSAID 與 H. pylori 可以共存，仍應檢測；陽性則根除並處理 NSAID 風險"}, ans:"D", exp:"NSAID 與幽門桿菌為胃潰瘍獨立且具協同致病作用之兩大危險因子，應積極檢驗與根除[span_167](start_span)[span_167](end_span)。" },
+    { id:"P40", ch:"消化性潰瘍", q:"H. pylori 病人認為 PPI 只是止痛，痛緩解後便只吃抗生素。何項衛教最正確？", options:{A:"若抗生素照吃，PPI 服用都不重要", B:"PPI 會直接取代抗生素殺菌", C:"PPI 提高胃內pH並促進癒合，有助整體根除方案；不能因不痛就自行撤掉", D:"PPI 的唯一角色是中和胃酸"}, ans:"C", exp:"PPI 提升胃內 pH 能增加阿莫西林等抗生素的化學穩定度及生物活性，為根除療程不可或缺的核心[span_168](start_span)[span_168](end_span)。" },
+    { id:"P41", ch:"消化性潰瘍", q:"鉍劑四合一患者因服藥複雜且輕微噁心，已漏服近三分之一，擬自行改成全數睡前一次。藥師最佳介入？", options:{A:"釐清漏藥原因，依原方案製作時程與副作用處理計畫，必要時聯絡醫師調整", B:"只要痛改善療程可提早結束", C:"總劑量不變便可集中睡前", D:"先停其中一種抗生素"}, ans:"A", exp:"高依從性 (>85%) 為根除成功核心；藥師應主動擬定用藥排程與副作用管理策略維持完整療程[span_169](start_span)[span_169](end_span)。" },
+    { id:"P42", ch:"消化性潰瘍", q:"使用鉍劑四合一第4天，病人出現黑舌及黑便，但同時伴隨頭暈、心悸、血壓下降。最適當處置？", options:{A:"改用抗體檢測即可區分", B:"只停 bismuth 即可排除出血", C:"黑舌證明所有黑便都只是鉍劑作用", D:"雖鉍劑可使糞便變黑，仍須優先緊急評估消化道出血與血流動力學"}, ans:"D", exp:"鉍劑形成硫化鉍會造成無害黑便，但伴隨頭暈低血壓等低血容徵候時，絕不可輕忽真實出血！[span_170](start_span)[span_170](end_span)" },
+    { id:"P43", ch:"消化性潰瘍", q:"病人把鉍劑四合一中的 tetracycline 與含鈣營養品、含鎂制酸劑同時吞服。何項修正最適當？", options:{A:"依產品指示與多價金屬製劑錯開，維持原抗菌療程並檢查其他用法", B:"直接改成任意劑量 doxycycline", C:"只要有PPI 便能完全抵銷螯合", D:"增加鈣鎂可提高四環黴素活性"}, ans:"A", exp:"多價陽離子（Ca, Mg, Al, Fe）會與 Tetracycline 產生多價螯合作用而大幅降低吸收，應嚴格錯開[span_171](start_span)[span_171](end_span)。" },
+    { id:"P44", ch:"消化性潰瘍", q:"醫囑為 PPI 及 amoxicillin 連續14天，clarithromycin 和 metronidazole 只在後7天加入。此療法依分類為？", options:{A:"全程共治療法", B:"純序列療法", C:"混合療法 (Hybrid therapy)", D:"鉍劑四合一"}, ans:"C", exp:"前段雙藥、後段四藥且 amoxicillin 貫穿全程 14 天者，分類上屬於混合療法 (Hybrid therapy)[span_172](start_span)[span_172](end_span)。" },
+    { id:"P45", ch:"消化性潰瘍", q:"若題目採 ACG 2024，病人無大環內酯暴露史但個別藥敏未知，最佳解讀？", options:{A:"15%門檻對所有年代永遠適用", B:"把療程縮成7天可避免抗藥性", C:"不能僅靠無暴露史就選 clarithromycin 三合一；應依新指引採適當經驗性方案", D:"無暴露史即等同敏感"}, ans:"C", exp:"ACG 2024 建議在抗藥性未知地區避免經驗性使用 Clarithromycin 三合一，首選鉍劑四合一[span_173](start_span)[span_173](end_span)。" },
+    { id:"P46", ch:"消化性潰瘍", q:"病人 H. pylori 已根除，但有大型胃潰瘍且仍須使用 NSAID。病人認為根除後可立停 PPI。最佳評估？", options:{A:"任何患者根除後均終生高劑量PPI", B:"胃痛消失即可取代癒合評估", C:"根除與潰瘍癒合、NSAID 胃保護是不同目標，仍須依潰瘍及持續風險決定 PPI", D:"根除成功表示胃黏膜當天已修復"}, ans:"C", exp:"大型潰瘍修復需時間，且持續使用 NSAID 仍具高潰瘍復發風險，需繼續維持 PPI 保護[span_174](start_span)[span_174](end_span)。" },
+    { id:"P47", ch:"消化性潰瘍", q:"69 歲女性曾患胃潰瘍，癒合後仍需 NSAID。處方 naproxen 加 famotidine 20 mg BID。藥師評估何者最適當？", options:{A:"改腸溶 naproxen 即可停胃保護", B:"加睡前制酸劑可消除風險", C:"標準 H2RA 對胃潰瘍預防優於PPI", D:"標準劑量 H2RA對NSAID 胃潰瘍保護有限，應依風險考慮PPI等有效策略"}, ans:"D", exp:"標準劑量 H2RA 僅能預防十二指腸潰瘍，對預防 NSAID 誘發之胃潰瘍效果薄弱，高風險者首選 PPI[span_175](start_span)[span_175](end_span)。" },
+    { id:"P48", ch:"消化性潰瘍", q:"75 歲患者曾有潰瘍出血，現服抗凝血劑，因關節痛想自行加 ibuprofen。何項建議最適當？", options:{A:"把抗凝血劑停掉以使用 ibuprofen", B:"先避免自行加用全身性 NSAID，請醫師評估替代止痛及原病治療；PPI不能把風險歸零", C:"直接換 celecoxib 單藥即可完全避免出血", D:"只要加 PPI 就能安全長期使用"}, ans:"B", exp:"高齡、既往出血與抗凝血劑為消化道出血極高危險因子，應盡可能避免使用全身性 NSAID[span_176](start_span)[span_176](end_span)。" },
+    { id:"P49", ch:"消化性潰瘍", q:"患者曾有潰瘍出血且已根除幽門桿菌，目前仍確認必須短期使用 NSAID。下列何者胃保護較適當？", options:{A:"非選擇性 NSAID 合併標準 H2RA", B:"最低有效劑量 celecoxib 合併PPI，並追蹤出血與其他風險", C:"Celecoxib 單用即可確保不再出血", D:"改用 NSAID 針劑免除保護"}, ans:"B", exp:"極高胃腸道風險但必須使用者，指引建議採用選擇性 COX-2 抑制劑合併 PPI 提供雙重保護[span_177](start_span)[span_177](end_span)。" },
+    { id:"P50", ch:"消化性潰瘍", q:"62 歲女性使用 naproxen，近加用 sertraline 與預防性 aspirin。醫師擬判定為低風險。最適當修正？", options:{A:"應納入 SSRI 與 aspirin 等藥物造成的加成出血風險，不可只看年齡及性別", B:"Aspirin 低於325mg 不影響出血風險", C:"只有同時用兩種 NSAID 才需保護", D:"女性可抵銷出血風險"}, ans:"A", exp:"NSAID 同時併用 Aspirin 或 SSRI 會產生顯著加成之血小板功能抑制與黏膜傷害出血風險[span_178](start_span)[span_178](end_span)。" },
+    { id:"P51", ch:"消化性潰瘍", q:"患者有潰瘍病史，改用腸溶 aspirin 認為已不會出血想停用 PPI。最適當說明？", options:{A:"隨牛奶服用能取代 PPI", B:"腸溶把 COX 作用限制在腸道", C:"腸溶可能降低部分局部刺激，但不能消除全身 COX 抑制及臨床潰瘍出血風險", D:"腸溶可消除抗血小板效果"}, ans:"C", exp:"腸溶劑型僅減輕胃黏膜直接局部酸性刺激，藥物吸收後產生的全身性前列腺素抑制風險依然存在[span_179](start_span)[span_179](end_span)。" },
+    { id:"P52", ch:"消化性潰瘍", q:"患者胃潰瘍癒合後詢問改用 diclofenac 肌肉注射是否可不再考慮胃腸道風險。最佳回答？", options:{A:"不經胃便不會抑制前列腺素", B:"不能，非口服仍可透過全身性COX 抑制造成潰瘍，須重新評估必要性與保護", C:"只有 aspirin 有全身性GI作用", D:"針劑增加胃血流能預防復發"}, ans:"B", exp:"非口服途徑（注射、塞劑）吸收至血流後同樣抑制全身 COX-1 與胃保護性前列腺素生成[span_180](start_span)[span_180](end_span)。" },
+    { id:"P53", ch:"消化性潰瘍", q:"57 歲患者長期服 diclofenac，胃鏡證實活動性潰瘍，H. pylori 陰性，無出血且可停藥。治療計畫何者最佳？", options:{A:"改用 misoprostol 必定更優", B:"停用 NSAID 並給適當 PPI 療程，再依症狀及癒合需求追蹤", C:"只需按需制酸劑", D:"改用緩釋劑型"}, ans:"B", exp:"NSAID 潰瘍第一步為盡可能停用致病 NSAID，並給予標準療程 PPI 促進黏膜癒合[span_181](start_span)[span_181](end_span)。" },
+    { id:"P54", ch:"消化性潰瘍", q:"長期 NSAID 患者用 misoprostol 預防潰瘍後持續嚴重腹瀉絞痛。何項建議最合理？", options:{A:"腹瀉代表保護不足應加量", B:"改成按需 sucralfate", C:"評估藥物相關副作用與其他病因，聯絡醫師考慮改用較能耐受的PPI 保護", D:"永久停所有胃保護"}, ans:"C", exp:"Misoprostol 具劑量相關之腸痙攣與腹瀉副作用；PPI 之胃潰瘍預防效果相當且耐受度顯著較佳[span_182](start_span)[span_182](end_span)。" },
+    { id:"P55", ch:"消化性潰瘍", q:"正在接受 NSAID 胃保護的女性發現懷孕，原處方含 misoprostol。藥師最應立即處理的問題？", options:{A:"換成同劑量其他前列腺素", B:"Misoprostol 作潰瘍預防在妊娠為禁忌，應立即聯絡醫師評估暴露並重整 NSAID 及胃保護方案", C:"只要加 PPI 就能抵銷子宮收縮", D:"Misoprostol 不具子宮作用"}, ans:"B", exp:"Misoprostol 具強烈子宮收縮作用可致流產或畸胎，在孕婦列為絕對禁忌症[span_183](start_span)[span_183](end_span)。" },
+    { id:"P56", ch:"消化性潰瘍", q:"心臟支架患者使用 aspirin+clopidogrel，曾有潰瘍出血現需 PPI。下列處方檢視何者最佳？", options:{A:"以標準劑量 famotidine 等效取代", B:"改用 omeprazole 錯開2小時即可", C:"直接停用 clopidogrel", D:"保留必要抗血小板治療，優先選 pantoprazole 等較少抑制 CYP2C19的PPI並持續追蹤"}, ans:"D", exp:"Clopidogrel 需 CYP2C19 代謝活化；Pantoprazole 對 CYP2C19 抑制極弱，為抗血小板合併治療首選 PPI[span_184](start_span)[span_184](end_span)。" },
+    { id:"P57", ch:"消化性潰瘍", q:"胃潰瘍患者服 omeprazole 20mg QD 兩週仍不適，每天都在睡前且距晚餐4小時吃。最合理初步建議？", options:{A:"固定睡前再加一倍PPI", B:"先把傳統 omeprazole 調至早餐前30-60分鐘，區分PPI維持制酸與制酸劑短效緩解，再評估反應及病因", C:"改成每日 H2RA 避免耐受性", D:"改為只在疼痛時服用"}, ans:"B", exp:"傳統 PPI 應於早晨第一餐前 30-60 分鐘服用，使血中高峰濃度恰好配合大量進食刺激活化之質子泵[span_185](start_span)[span_185](end_span)。" },
+    { id:"P58", ch:"消化性潰瘍", q:"使用傳統口服 ketoconazole 錠劑加 PPI 後療效下降，病人認為改 famotidine 即可解決。最適當分析？", options:{A:"提高胃內 pH 可能降低此劑型吸收；H2RA也會制酸，應檢視抗黴菌與制酸方案", B:"PPI 誘導所有CYP 酵素", C:"把PPI 與藥分開30分鐘即可排除", D:"此交互作用只因螯合"}, ans:"A", exp:"Ketoconazole 口服錠溶解需要強酸胃酸環境；任何強效制酸劑（包含 PPI 與 H2RA）皆會大幅削弱其吸收[span_186](start_span)[span_186](end_span)。" },
+    { id:"P59", ch:"消化性潰瘍", q:"病人 theophylline 原濃度穩定，加 cimetidine 後出現噁心、手抖與心搏過速。處置最合理？", options:{A:"這是H2RA 共有且等強度的誘導", B:"Cimetidine 誘導代謝", C:"兩藥錯開30分鐘即可", D:"懷疑代謝受抑制使 theophylline 暴露增加，應評估濃度並檢討制酸藥選擇"}, ans:"D", exp:"Cimetidine 抑制肝臟 CYP1A2，大幅減緩 theophylline 代謝清除引起中毒，應更換為 Famotidine[span_187](start_span)[span_187](end_span)。" },
+    { id:"P60", ch:"消化性潰瘍", q:"Warfarin 患者 INR 穩定，開始 cimetidine 後 INR 升高出現瘀青。何者解讀較合理？", options:{A:"應考慮代謝抑制使抗凝血作用增加，立即評估出血並由醫療團隊調整", B:"因胃酸減少 INR 必降低", C:"Cimetidine 可當解毒劑", D:"INR 只反映血小板功能"}, ans:"A", exp:"Cimetidine 抑制 CYP2C9 等酵素使 Warfarin 清除減緩、抗凝血效果顯著增強，出血風險增加[span_188](start_span)[span_188](end_span)。" },
+    { id:"P61", ch:"消化性潰瘍", q:"患者把 moxifloxacin 與 sucralfate 一起服，感染改善不如預期。機轉判讀與介入最合理？", options:{A:"增加 sucralfate 能保護抗生素", B:"Sucralfate 提高抗生素腎排泄", C:"含鋁 sucralfate 可形成複合物降低 moxifloxacin吸收，依該抗生素仿單安排足夠間隔", D:"兩藥來自肝CYP誘導"}, ans:"C", exp:"Sucralfate 分解釋出的鋁離子會與 Fluoroquinolones 產生金屬螯合不溶物，導致抗菌藥吸收不良失敗[span_189](start_span)[span_189](end_span)。" },
+    { id:"P62", ch:"消化性潰瘍", q:"原本甲狀腺功能穩定者，新增 ferrous sulfate 與 sucralfate 後全數於早餐前同吞，TSH 上升。下一步最適當？", options:{A:"Sucralfate 誘導甲狀腺素分泌", B:"鐵與鋁完全不會影響甲狀腺藥吸收", C:"直接固定加倍 levothyroxine", D:"先核對吸收交互作用與服藥安排，依仿單錯開並追蹤TSH，再判斷需否調量"}, ans:"D", exp:"鐵劑與含鋁 Sucralfate 會吸附結合 Levothyroxine 阻礙吸收，應將甲狀腺素至少錯開 4 小時[span_190](start_span)[span_190](end_span)。" },
+    { id:"P63", ch:"消化性潰瘍", q:"血液透析患者長期便秘，擬自行服 sucralfate 預防胃出血。最適當的評估？", options:{A:"須考慮鋁累積及便秘，且sucralfate 並非所有情境的預防首選，應重新評估適應症", B:"Sucralfate 可作常規補鋁藥", C:"局部作用表示完全沒有鋁吸收", D:"錯開一天能消除鋁毒性"}, ans:"A", exp:"Sucralfate 含有鋁離子，在末期腎病變透析患者體內排泄受阻，長期使用有全身性鋁中毒蓄積腦病變風險[span_191](start_span)[span_191](end_span)。" },
+    { id:"P64", ch:"消化性潰瘍", q:"eGFR 18 患者為消化不良每日大量使用含鎂制酸劑，近來嗜睡無力。最佳藥師評估？", options:{A:"改為同劑量含鋁制酸劑即可", B:"需評估鎂累積及其他急性病因，停止自行大量用藥並及時就醫檢查", C:"再增加劑量可促進排便", D:"含鎂制酸劑不會被吸收"}, ans:"B", exp:"嚴重腎功能不全患者無法排泄鎂離子，大量攝入含鎂制酸劑易引發致命性高血鎂症（中樞抑制、心律不整）[span_192](start_span)[span_192](end_span)。" },
+    { id:"P65", ch:"消化性潰瘍", q:"80 歲患者 CrCl 22 mL/min，住院開立 famotidine 20 mg IV Q12H，數天後意識混亂。應優先作何評估？", options:{A:"檢查其他譫妄原因，同時核對 famotidine 腎功能調整及可能累積", B:"Famotidine 完全不需依腎功能調整", C:"把劑量加倍降低胃酸", D:"改口服消除全身累積"}, ans:"A", exp:"Famotidine 仰賴腎臟排除，CrCl < 50 mL/min 應減量或拉長間隔，否則高齡蓄積易引發中樞神經毒性譫妄[span_193](start_span)[span_193](end_span)。" },
+    { id:"P66", ch:"消化性潰瘍", q:"患者因胃保護使用 PPI 兩年，併用利尿劑，出現肌肉抽搐及心悸，血鎂偏低。處置何者最合理？", options:{A:"評估嚴重度、心律及其他低鎂原因，補充並檢討PPI必要性與可行替代", B:"低鎂與PPI不可能相關", C:"只要補鎂即可不再追蹤", D:"永久禁止所有制酸藥"}, ans:"A", exp:"長期使用 PPI (通常>1年) 會干擾腸道 TRPM6/7 主動運送造成低血鎂症，併用利尿劑者風險劇增[span_194](start_span)[span_194](end_span)。" },
+    { id:"P67", ch:"消化性潰瘍", q:"病人每日使用 H2RA 數週後夜間制酸效果減弱自行加量；幽門桿菌未知且服 NSAID。評估何者最完整？", options:{A:"考慮 H2RA 耐受性，同時確認感染、NSAID與用法，再選擇適當治療", B:"只要無限加量就可克服病因", C:"耐受性證明潰瘍已惡變", D:"改另一種 H2RA 保證避免耐受性"}, ans:"A", exp:"H2RA 連續使用幾天至數週內極易產生快速耐受性 (Tachyphylaxis)，且應積極檢視潛在病因[span_195](start_span)[span_195](end_span)。" },
+    { id:"P68", ch:"消化性潰瘍", q:"Forrest IIa 胃潰瘍已內視鏡成功止血，循環穩定。採 ACG 2021，關於接下來 72 小時 PPI 策略何者正確？", options:{A:"使用高劑量PPI，可依有效方案採持續輸注或間歇給藥", B:"止血成功即不需 PPI", C:"改標準劑量制酸劑即可等效預防再出血", D:"只有持續輸注才符合實證，間歇方案一律錯誤"}, ans:"A", exp:"高風險出血性潰瘍止血後，指引認可 72 小時高劑量 PPI 持續輸注或間歇靜脈注射 (如 40-80mg BID)[span_196](start_span)[span_196](end_span)[span_197](start_span)[span_197](end_span)。" },
+    { id:"P69", ch:"消化性潰瘍", q:"高風險出血性潰瘍止血後已完成 72 小時高劑量 PPI，能口服且無再出血。採 ACG 2021 接續制酸規畫何者最佳？", options:{A:"改成完全停藥", B:"只須每週一次 H2RA", C:"改口服 PPI 每日兩次，完成內視鏡後最初2週的加強期，再依病因與癒合調整", D:"一律持續輸注兩個月"}, ans:"C", exp:"高風險出血潰瘍完成 72 小時靜脈 PPI 後，建議口服 PPI BID 維持至內視鏡術後滿 14 天加強預防[span_198](start_span)[span_198](end_span)[span_199](start_span)[span_199](end_span)。" },
+    { id:"P70", ch:"消化性潰瘍", q:"兩位潰瘍患者：甲為 Forrest IIa 非出血可見血管，乙為 Forrest III 乾淨基底。何種處置最合理？", options:{A:"甲需內視鏡止血及高風險後續治療；乙通常不需內視鏡止血，另依整體風險決定照護", B:"兩者均需72小時持續輸注", C:"只依血紅素數字忽略內視鏡徵象", D:"甲目前沒流血風險比乙低"}, ans:"A", exp:"Forrest IIa (可見血管) 具高再出血率需內視鏡介入及高劑量 PPI；Forrest III (乾淨基底) 屬低風險不需止血[span_200](start_span)[span_200](end_span)。" },
+    { id:"P71", ch:"消化性潰瘍", q:"出血性潰瘍內視鏡止血成功，兩天後又吐血、血壓下降。最適當的下一步？", options:{A:"停用所有 PPI", B:"只把口服 PPI加倍", C:"立即復甦與評估，安排再次內視鏡止血；失敗時考慮血管栓塞等救援", D:"只做抗體測試"}, ans:"C", exp:"急性再出血應先給予積極輸液穩定生命徵象，並儘速安排第二次重複內視鏡止血介入[span_201](start_span)[span_201](end_span)。" },
+    { id:"P72", ch:"消化性潰瘍", q:"活動性潰瘍出血接受腎上腺素注射後暫時止血，計畫直接結束內視鏡只加 PPI。最佳評估？", options:{A:"當下停止出血即代表單用等效", B:"腎上腺素不宜單獨作最終內視鏡治療，應合併適當熱治療或機械止血", C:"所有潰瘍都必須用三種技術", D:"PPI 可取代直接止血"}, ans:"B", exp:"局部注射腎上腺素僅能達到暫時血管收縮壓迫，不可單獨使用，必須合併電熱凝固或止血夾雙重治療[span_202](start_span)[span_202](end_span)。" },
+    { id:"P73", ch:"消化性潰瘍", q:"長期服 NSAID 的 78 歲患者平時無胃痛，今日黑便頭暈血紅素下降。家屬認為沒有胃痛非潰瘍。最佳判讀？", options:{A:"黑便只可能由鐵劑引起", B:"沒有上腹痛即可排除消化性潰瘍", C:"只要停藥在家等待", D:"NSAID 相關潰瘍可無痛且以出血首發，須立即評估失血與上消化道來源"}, ans:"D", exp:"NSAID 潰瘍具「無痛/沉默型潰瘍」特性（特別是老年人），常毫無前驅疼痛直接以急性出血首發[span_203](start_span)[span_203](end_span)。" },
+    { id:"P74", ch:"消化性潰瘍", q:"原有潰瘍病史者突發劇烈上腹痛，迅速擴散全腹且腹壁僵硬如木板。最適當藥師分流？", options:{A:"只要沒吐血排除急症", B:"先加倍口服 PPI 三天", C:"疑穿孔等急腹症，立即急診評估，不能先以口服PPI反應作排除測試", D:"服制酸劑若稍緩解能排除穿孔"}, ans:"C", exp:"突發腹膜刺激徵候與腹壁僵直為急性潰瘍穿孔引發腹膜炎之典型急症，須緊急外科介入處置[span_204](start_span)[span_204](end_span)。" },
+    { id:"P75", ch:"消化性潰瘍", q:"ICU 患者休克需升壓劑，INR 1.8，現已開始腸道灌食。採 SCCM/ASHP 2024 何項策略最適當？", options:{A:"仍有休克及凝血異常風險，應考慮低劑量PPI或H2RA預防；灌食不會自動取消適應症", B:"只要開始灌食所有患者立即停預防", C:"每位ICU病人都需高劑量輸注", D:"Sucralfate 可取代所有評估"}, ans:"A", exp:"重大休克與凝血異常 (INR>1.5) 為壓力性黏膜病變強烈獨立危險因子，即便灌食仍建議藥物預防[span_205](start_span)[span_205](end_span)[span_206](start_span)[span_206](end_span)。" },
+    { id:"P76", ch:"消化性潰瘍", q:"某 ICU 患者機械通氣 72 小時，無休克凝血異常或肝病，已灌食。引用 SCCM/ASHP 2024 最佳解讀？", options:{A:"改用高劑量 sucralfate", B:"通氣時間滿48小時即唯一判準", C:"單純機械通氣的獨立風險證據不確定，應綜合整體風險與營養狀態評估", D:"機械通氣禁止預防"}, ans:"C", exp:"2024 重症指引指出單純機械通氣本身獨立風險證據未若凝血障礙顯著，應綜合全身臨床風險決策[span_207](start_span)[span_207](end_span)[span_208](start_span)[span_208](end_span)。" },
+    { id:"P77", ch:"消化性潰瘍", q:"透析患者住 ICU 伴凝血異常需 SRMB 預防；目前禁食且無胃管。處方審核建議何者最佳？", options:{A:"Famotidine 40 mg IV Q12H", B:"可選 pantoprazole 40 mg IV 每日一次作低劑量預防，並於風險消失時停用", C:"Sucralfate 1g 口服", D:"Pantoprazole 80mg bolus + 8mg/hr 輸注"}, ans:"B", exp:"禁食無管路可採用靜脈 PPI 預防；Pantoprazole 經肝臟代謝，透析患者每日 40mg 不需調降劑量[span_209](start_span)[span_209](end_span)[span_210](start_span)[span_210](end_span)。" },
+    { id:"P78", ch:"消化性潰瘍", q:"病人休克與凝血異常已解除即將轉一般病房，無其他制酸適應症。原 SRMB 預防之 PPI 如何處理？", options:{A:"轉兩倍口服劑量才能停", B:"曾住 ICU 應終生 PPI", C:"停藥前必須胃鏡", D:"重新確認風險與其他適應症後停用，避免無理由延續至出院"}, ans:"D", exp:"壓力性潰瘍預防僅限重症危險因子存在期間；轉出加護病房且危險因子解除即應停藥，避免過度開立[span_211](start_span)[span_211](end_span)[span_212](start_span)[span_212](end_span)。" },
+    { id:"P79", ch:"消化性潰瘍", q:"患者服高劑量 PPI 時測得空腹胃泌素升高，醫師考慮 ZES。何項解讀最適當？", options:{A:"胃泌素升高排除 PPI 影響", B:"直接停 PPI 兩週且不需監督", C:"胃泌素高即等同胃泌素瘤", D:"PPI 制酸本身可能使胃泌素升高，須由專科結合胃內酸度等資料評估，勿自行突然停 PPI"}, ans:"D", exp:"PPI 長期抑制胃酸會促使 G 細胞代償性分泌胃泌素，需由專科評估胃內酸度，切勿貿然停藥致嚴重反彈[span_213](start_span)[span_213](end_span)。" },
+    { id:"P80", ch:"消化性潰瘍", q:"患者反覆多發性遠端十二指腸潰瘍合併腹瀉確診胃泌素瘤；高劑量 PPI 改善。後續計畫最佳？", options:{A:"症狀消失表示胃泌素瘤由 PPI 根治", B:"立即改胃切除術", C:"PPI 只能用一般低劑量", D:"持續依酸分泌與臨床反應調整PPI，同時評估腫瘤分期及可切除性"}, ans:"D", exp:"ZES 的治療包括控制胃酸分泌過多（高劑量 PPI 滴定）與評估神經內分泌腫瘤切除手術兩大目標[span_214](start_span)[span_214](end_span)。" },
+    { id:"P_App21", ch:"消化性潰瘍", q:"(附錄第21題) 58歲男性確診幽門螺旋桿菌潰瘍。3週前曾用 clarithromycin 治療鼻竇炎5天，且自述對 penicillin 過敏。何種14天療程最適合作為第一線治療？", options:{A:"PPI + Clarithromycin + Amoxicillin", B:"PPI + Clarithromycin + Metronidazole + Amoxicillin", C:"PPI + Bismuth + Metronidazole + Tetracycline (鉍劑四合一)", D:"PPI + Levofloxacin + Amoxicillin"}, ans:"C", exp:"有巨環類抗生素近期暴露且對青黴素過敏，標準第一線首選為 14 天鉍劑四合一療法[span_215](start_span)[span_215](end_span)。" },
+    { id:"P_App22", ch:"消化性潰瘍", q:"(附錄第22題) 72歲女性因類風濕性關節炎服 naproxen 500mg BID，因心房顫動服 warfarin，又加用 sertraline。有潰瘍史。預防 NSAID 潰瘍策略何者最適當？", options:{A:"停 naproxen 改 acetaminophen", B:"繼續 naproxen 加上標準劑量 PPI", C:"換 celecoxib", D:"將 naproxen 換成 celecoxib，並合併使用PPI"}, ans:"D", exp:"高齡、潰瘍病史、合併抗凝血劑與 SSRI 具極高出血風險，需選用 COX-2 抑制劑合併 PPI 雙重保護[span_216](start_span)[span_216](end_span)。" },
+    { id:"P_App23", ch:"消化性潰瘍", q:"(附錄第23題) 65歲男性心肌梗塞支架術後服用 aspirin+clopidogrel。近期需用 NSAID 且考慮 PPI。用藥管理何者最正確？", options:{A:"可使用任何 PPI", B:"應避免併用 omeprazole 或 esomeprazole，建議使用 pantoprazole 或 famotidine", C:"PPI 完全不影響 clopidogrel 效果", D:"立即停用 clopidogrel"}, ans:"B", exp:"Omeprazole/Esomeprazole 強烈抑制 CYP2C19 減低 Clopidogrel 活性；應更換為 Pantoprazole[span_217](start_span)[span_217](end_span)[span_218](start_span)[span_218](end_span)。" },
+    { id:"P_App24", ch:"消化性潰瘍", q:"(附錄第24題) 55歲男性嚴重上腹痛吐血，內視鏡顯示胃竇部 2公分潰瘍，Forrest IIa (可見不流血血管)。完成止血後後續最適當 PPI 策略？", options:{A:"口服 pantoprazole 40 mg QD 連續8週", B:"Pantoprazole 40 mg IV Q12H 持續72小時後改口服", C:"Pantoprazole 80 mg IV bolus，接著 8 mg/hr 持續靜脈輸注 72 小時，之後改口服", D:"無需使用 PPI"}, ans:"C", exp:"Forrest IIa 屬高風險潰瘍，指引建議高劑量靜脈注射 PPI (80mg bolus + 8mg/hr 持續輸注 72小時)[span_219](start_span)[span_219](end_span)。" },
+    { id:"P_App25", ch:"消化性潰瘍", q:"(附錄第25題) 68歲男性肺炎入住 ICU 接受機械通氣 (已插管48小時)，禁食且無鼻胃管，SCr 1.8 mg/dL。預防 SRMB 何者最適當？", options:{A:"不需要預防性藥物治療", B:"Famotidine 20 mg IV Q12H", C:"Sucralfate 1g 口服或管灌 Q6H", D:"碳酸鈣 500 mg 口服"}, ans:"B", exp:"機械通氣>48小時需預防 SRMB；禁食且無管路可採用靜脈注射 Famotidine (依腎功能調整為 20mg Q12H)[span_220](start_span)[span_220](end_span)。" },
+    { id:"P_App26", ch:"消化性潰瘍", q:"(附錄第26題) 關於消化性潰瘍疾病 (PUD) 的主要病因，下列敘述何者正確？", options:{A:"心理壓力是 PUD 最主要致病原因", B:"幽門螺旋桿菌感染和 NSAID 使用是 PUD 最常見的兩大風險因子", C:"辛辣食物和咖啡是直接導致潰瘍的主要原因", D:"胃酸過度分泌是所有 PUD 患者的共同特徵"}, ans:"B", exp:"幽門螺旋桿菌 (H. pylori) 感染與 NSAIDs 的使用佔所有消化性潰瘍成因的絕大部分[span_221](start_span)[span_221](end_span)[span_222](start_span)[span_222](end_span)。" },
+    { id:"P_App27", ch:"消化性潰瘍", q:"(附錄第27題) 45歲患者幽門桿菌陽性消化性潰瘍處方 omeprazole。關於 PPI 的正確使用方式何者最適當？", options:{A:"應在睡前服用", B:"應在餐前 30-60 分鐘服用，空腹時效果最佳", C:"應隨餐服用減少不適", D:"服用時間不影響藥效"}, ans:"B", exp:"PPI 應於早餐前 30-60 分鐘空腹服用，此時質子泵活性最高，能發揮最佳不可逆抑制活性[span_223](start_span)[span_223](end_span)。" },
+    { id:"P_App28", ch:"消化性潰瘍", q:"(附錄第28題) 患者服用含鉍劑四合一第3天來電，表示舌頭和大便變成黑色。藥師何種回應最適當？", options:{A:"這是嚴重的副作用，立即停藥", B:"可能是出血徵兆，立即急診", C:"這是 bismuth 的正常且無害的副作用，可以繼續服藥不需擔心", D:"建議減少劑量"}, ans:"C", exp:"鉍劑與唾液或腸道硫化物結合生成黑色硫化鉍，引起無害的舌頭及糞便變黑，應衛教病患安心服藥[span_224](start_span)[span_224](end_span)。" },
+    { id:"P_App29", ch:"消化性潰瘍", q:"(附錄第29題) 關於幽門螺旋桿菌 (H. pylori) 的檢測方法，下列何者不需要進行內視鏡檢查即可完成？", options:{A:"組織學檢查 (Histology)", B:"快速尿素酶測試 (RUT)", C:"尿素呼氣測試 (UBT)", D:"細菌培養 (Culture)"}, ans:"C", exp:"尿素呼氣試驗 (UBT) 與糞便抗原檢驗為最常用之非侵入性檢驗；其餘選項皆需內視鏡切片檢體[span_225](start_span)[span_225](end_span)[span_226](start_span)[span_226](end_span)。" },
+    { id:"P_App30", ch:"消化性潰瘍", q:"(附錄第30題) 52歲女性長期用 ibuprofen 診斷 NSAID 胃潰瘍，H. pylori 陰性。停用 NSAID 後何種藥物為治療首選？", options:{A:"制酸劑 (Antacids)", B:"氫離子幫浦抑制劑 (PPI) 如 pantoprazole", C:"H2 受體拮抗劑 (H2RA) 如 ranitidine", D:"Sucralfate (硫糖鋁)"}, ans:"B", exp:"PPI 能最強效抑制胃酸分泌，促進潰瘍黏膜快速癒合，為 NSAID 潰瘍治療之首選用藥[span_227](start_span)[span_227](end_span)。" }
+  ],
+
+  copd: [
+    { id:"C1", ch:"COPD", q:"67 歲吸菸者慢性咳痰；擴張後 FEV1/FVC 0.61、FEV1 為預測值 55%，CAT 18 分，去年無中重度惡化。依 GOLD 2026 何者正確？", options:{A:"FEV1 為 55%不能支持 COPD", B:"符合持續氣流阻塞；氣流受限為 GOLD 2，初始評估為 Group B", C:"CAT 超過 10 分即屬 Group E", D:"氣流受限必為 GOLD 3"}, ans:"B", exp:"FEV1 50-79% 屬 GOLD 2；無惡化且高症狀 (CAT≥10) 初始評估屬於 Group B[span_228](start_span)[span_228](end_span)。" },
+    { id:"C2", ch:"COPD", q:"兩名 COPD 患者 FEV1 皆 40%，甲 CAT 6分，乙 CAT 24分，去年均無惡化。最適當處方評估原則？", options:{A:"CAT 只反映心理狀態", B:"分別評估症狀、惡化史及使用能力，不能因 FEV1 相同就視為需同一處方", C:"兩人皆 GOLD 3 必須給相同三合一", D:"乙 CAT 較高應以長期口服類固醇優先"}, ans:"B", exp:"相同氣流受限分級不代表相同症狀負擔或惡化風險，評估處方需同時考量症狀評分[span_229](start_span)[span_229](end_span)。" },
+    { id:"C3", ch:"COPD", q:"新診斷 COPD 患者 CAT 7 分，去年1次需口服類固醇但未住院之中度惡化；EOS 60 cells/μL，無氣喘。依 GOLD 2026 初始處方何者最適當？", options:{A:"Group E；優先 LABA/ICS", B:"Group B；單用 ICS", C:"Group E；優先 LABA/LAMA，不能因症狀少忽略惡化風險", D:"Group A；只按需 SABA"}, ans:"C", exp:"GOLD 2026 將過去1年至少1次中度惡化歸入 Group E；初始首選為 LABA/LAMA 雙支氣管擴張劑[span_230](start_span)[span_230](end_span)[span_231](start_span)[span_231](end_span)。" },
+    { id:"C4", ch:"COPD", q:"COPD 患者 CAT 25 分，過去一年無中重度惡化；嗜酸性球 50 cells/μL，無氣喘。最合理起始維持治療？", options:{A:"LABA/ICS 複方", B:"長期 azithromycin", C:"ICS 單方", D:"LABA/LAMA 複方，並保留適當短效救援藥"}, ans:"D", exp:"Group B 患者起始首選 LABA/LAMA 雙長效支氣管擴張劑；單純高症狀與低嗜酸性球非 ICS 適應症[span_232](start_span)[span_232](end_span)。" },
+    { id:"C5", ch:"COPD", q:"COPD 患者去年因惡化住院1次，CAT 10 分、EOS 80 cells/μL，無氣喘，尚未接受維持治療。何者最適當？", options:{A:"優先 LABA/LAMA，低 EOS 且無氣喘不支持只憑住院史立即加 ICS", B:"按需 SABA 即可", C:"優先 ICS 單方", D:"以 LABA/ICS 取代雙支氣管擴張"}, ans:"A", exp:"Group E 初始優先建議 LABA/LAMA；嗜酸性球 < 100 且無氣喘病史者，不建議常規起始使用 ICS[span_233](start_span)[span_233](end_span)。" },
+    { id:"C6", ch:"COPD", q:"使用 LABA/LAMA 後 FEV1 只增加 60 mL，但走路距離與呼吸困難明顯改善。何者最合理？", options:{A:"FEV1 未增 200 mL 證明完全無效", B:"可能因肺排空改善、氣體滯留減少而獲益，應合併症狀與活動能力評估", C:"疾病已逆轉可停藥", D:"直接改長期 prednisone"}, ans:"B", exp:"支氣管擴張劑能減少動態肺過度充氣 (dynamic hyperinflation)，臨床效益常反映於活動耐力改善而非單看 FEV1[span_234](start_span)[span_234](end_span)。" },
+    { id:"C7", ch:"COPD", q:"42 歲非吸菸者有基底部全小葉型肺氣腫，父親亦早發肺病。何項處置最適當？", options:{A:"只依影像給 AAT 輸注", B:"以長期 ICS 單方取代", C:"沒有吸菸即可排除 COPD", D:"檢測 AAT 濃度並依結果作基因／表型確認，再評估專科治療"}, ans:"D", exp:"早發且全小葉型肺氣腫高度懷疑 α1-抗胰蛋白酶缺乏症 (AATD)，應抽血篩檢濃度與基因表現型[span_235](start_span)[span_235](end_span)。" },
+    { id:"C8", ch:"COPD", q:"COPD 以 tiotropium 治療後仍 CAT 22 分無惡化，技巧良好。最合理藥物調整？", options:{A:"tiotropium 增至兩倍", B:"加入 LABA 形成 LABA/LAMA，並追蹤症狀及活動耐受", C:"規律加用口服 theophylline", D:"停 LAMA 改 ICS 單方"}, ans:"B", exp:"單一長效支氣管擴張劑控制不佳時，升階為兩種不同機轉之雙長效複方 (LAMA+LABA) 具協同改善效益[span_236](start_span)[span_236](end_span)。" },
+    { id:"C9", ch:"COPD", q:"使用 LABA/LAMA 仍喘，藥師發現病人沒有上藥、DPI 吸氣短淺且常漏藥。最佳下一步？", options:{A:"加大同 DPI 處方微克數", B:"先以回覆示教修正操作、評估裝置適配及依從性，再重評是否需升階", C:"改長期口服類固醇", D:"直接加 ICS"}, ans:"B", exp:"升階前務必先核對與修正吸入器操作技巧及服藥順從性，避免無效升階增加副作用風險[span_237](start_span)[span_237](end_span)。" },
+    { id:"C10", ch:"COPD", q:"COPD 正確使用 LABA/LAMA 仍有兩次中度惡化；EOS 反覆為 380 cells/μL，無肺炎史。最合理升階？", options:{A:"只加倍 LABA 劑量", B:"討論加入 ICS 形成 LABA/LAMA/ICS，並追蹤惡化與感染風險", C:"撤除 LAMA 改 ICS 單方", D:"無論 EOS 多高都不用 ICS"}, ans:"B", exp:"雙長效控制下仍頻繁惡化且周邊嗜酸性球 ≥ 300 cells/μL，為升階三聯療法 (LABA/LAMA/ICS) 強烈適應症[span_238](start_span)[span_238](end_span)。" },
+    { id:"C11", ch:"COPD", q:"COPD 使用 LABA/LAMA，近一年無惡化但仍走路喘，EOS 40 cells/μL；合併缺鐵性貧血。何者最適當？", options:{A:"EOS 低表示 ICS 劑量應更高", B:"先評估貧血、去適能等原因並安排合適復健，不以單純喘自動加 ICS", C:"CAT 高就應加 ICS", D:"換 LABA/ICS 並停 LAMA"}, ans:"B", exp:"呼吸困難原因多元，在低惡化風險與低嗜酸性球患者身上盲目加用 ICS 無益，應處理共病與去適能[span_239](start_span)[span_239](end_span)。" },
+    { id:"C12", ch:"COPD", q:"COPD 三聯療法後一年無惡化但反覆肺炎；過往 EOS 多次 420 cells/μL，無氣喘。何者最適當？", options:{A:"把 ICS 加倍降低感染", B:"停 ICS 後不可能惡化", C:"立即停藥不需追蹤", D:"共同評估肺炎與撤 ICS 後惡化風險；高 EOS 提示撤藥較可能惡化，需審慎計畫與追蹤"}, ans:"D", exp:"反覆肺炎為停用 ICS 理由，但過往 EOS>300 停藥後惡化風險高，須嚴密監測並謹慎共同決策[span_240](start_span)[span_240](end_span)。" },
+    { id:"C13", ch:"COPD", q:"吸菸者有固定氣流阻塞、明確氣喘病史，近期 EOS 60 cells/μL，目前只用 LABA/LAMA。最重要的處方檢視？", options:{A:"LABA/LAMA 足以取代氣喘抗發炎", B:"明確合併氣喘時應確保 ICS-containing 治療，不能以低 EOS 套用單純 COPD 規則", C:"固定阻塞代表氣喘診斷應撤銷", D:"低於 100 即可排除氣喘"}, ans:"B", exp:"合併氣喘病史者必須確保處方包含 ICS，不可僅給予無抗發炎之雙支氣管擴張劑[span_241](start_span)[span_241](end_span)。" },
+    { id:"C14", ch:"COPD", q:"FEV1 38%、慢性咳痰的 COPD 患者，已最佳化三聯治療仍因惡化住院；BMI 23、無精神病史。附加策略最吻合？", options:{A:"由醫師評估 roflumilast，作減少惡化的附加抗發炎藥", B:"把長期 prednisone 作首選", C:"以 montelukast 作常規附加", D:"以 roflumilast 取代 LABA/LAMA"}, ans:"A", exp:"口服 PDE-4 抑制劑 (Roflumilast) 適用於 FEV1<50%、慢性支氣管炎表型且頻繁惡化之患者[span_242](start_span)[span_242](end_span)。" },
+    { id:"C15", ch:"COPD", q:"候選 roflumilast 患者若 BMI 為 17，近月非刻意減重 4 公斤且有憂鬱症，何者最佳？", options:{A:"體重下降是有效指標", B:"不會影響食慾或情緒", C:"先重評營養與精神風險，慎選或避免 roflumilast 並討論替代方案", D:"低 BMI 應優先加藥"}, ans:"C", exp:"Roflumilast 常見副作用為嚴重腹瀉、體重減輕及誘發憂鬱甚至自殺意念，低體重與憂鬱病史為相對禁忌[span_243](start_span)[span_243](end_span)。" },
+    { id:"C16", ch:"COPD", q:"已戒菸 COPD 患者在最佳化維持治療後仍頻繁惡化，醫師考慮長期 azithromycin。何項評估最完整？", options:{A:"只查腎功能", B:"核對 QTc、併用藥、聽力、抗藥性及必要的分枝桿菌評估，再共同決策", C:"只要曾住院就終身使用", D:"當作每日控制骨幹取代吸入藥"}, ans:"B", exp:"長期使用低劑量 Azithromycin 需常規監控心電圖 QTc 延長、聽力障礙及非結核分枝桿菌 (NTM) 抗藥性[span_244](start_span)[span_244](end_span)。" },
+    { id:"C17", ch:"COPD", q:"COPD 患者每次短療程 prednisone 都覺得較舒服，要求每天 10 mg 長期服用，無其他適應症。最適當建議？", options:{A:"只要監測血糖能消除風險", B:"口服比吸入可靠應取代吸入藥", C:"不將慢性口服類固醇作穩定 COPD 常規治療，應最佳化吸入與非藥物措施", D:"10 mg 長期可避免骨質疏鬆"}, ans:"C", exp:"長期全身性類固醇副作用巨大（肌病變、骨鬆、白內障、感染），指引嚴格禁止常規作為慢性維持治療[span_245](start_span)[span_245](end_span)。" },
+    { id:"C18", ch:"COPD", q:"患者使用 umeclidinium/vilanterol，又拿到 fluticasone/salmeterol，表示兩支一起吸較不喘。最優先處置？", options:{A:"雙 LABA 風險可抵銷", B:"新增 formoterol 增強控制", C:"商品名不同無成分重複", D:"辨識重複 LABA，先核對處方意圖並整合為合適方案，而非疊加兩種 LABA"}, ans:"D", exp:"Vilanterol 與 Salmeterol 均為 LABA，不可重疊使用以免心血管嚴重不良反應風險倍增[span_246](start_span)[span_246](end_span)。" },
+    { id:"C19", ch:"COPD", q:"COPD 用 LABA/ICS 仍反覆惡化需保留 ICS，擬加 aclidinium。何項藥理判斷正確？", options:{A:"加入 LAMA 可阻斷膽鹼性支氣管收縮，形成三聯維持治療，不是抗菌或急救替代藥", B:"Aclidinium 是 SABA 用於急救", C:"Aclidinium 直接中和 IgE", D:"加入 LAMA 等同增加 ICS 劑量"}, ans:"A", exp:"Aclidinium 為長效抗膽鹼支氣管擴張劑 (LAMA)，合併 LABA/ICS 構成三聯療法[span_247](start_span)[span_247](end_span)。" },
+    { id:"C20", ch:"COPD", q:"COPD 患者突發劇烈喘鳴伴胸膜性胸痛、心搏過速及單側下肢腫，痰量未變。最適當處置？", options:{A:"急評肺栓塞等替代／共存診斷，不應只當一般感染性惡化處理", B:"無膿痰排除需住院疾病", C:"所有 COPD 喘都由細菌引起先給抗生素", D:"將維持 LABA 加倍一週後評估"}, ans:"A", exp:"深部靜脈血栓徵候與突發性胸痛提示肺動脈栓塞 (PE)，不可盲目視為單純感染性惡化[span_248](start_span)[span_248](end_span)。" },
+    { id:"C21", ch:"COPD", q:"COPD 急性喘鳴，正在規律使用 tiotropium/olodaterol。急性藥物策略何者最適當？", options:{A:"停止吸入藥先口服 theophylline 負荷", B:"反覆追加 olodaterol 到症狀消失", C:"只用 ICS 單方反覆急救", D:"依嚴重度以吸入 SABA，必要時加 SAMA 處理，另評估全身性類固醇等治療"}, ans:"D", exp:"急性惡化首選短效支氣管擴張劑 SABA ± SAMA 快速緩解，並非無限制追加維持用長效藥物[span_249](start_span)[span_249](end_span)。" },
+    { id:"C22", ch:"COPD", q:"COPD 中重度惡化患者可口服、無嘔吐、無長期全身性類固醇使用。口服類固醇處方何者最適當？", options:{A:"Prednisone 10 mg/日共一個月", B:"必須待抗生素使用3天無效後才開始類固醇", C:"Methylprednisolone 125 mg IV 每 6 小時共 14 天", D:"Prednisone-equivalent 40 mg/日共 5 天，並評估血糖與不良反應"}, ans:"D", exp:"GOLD 指引建議 COPD 急性惡化全身性類固醇標準療程為 prednisone 40 mg/日共 5 天[span_250](start_span)[span_250](end_span)[span_251](start_span)[span_251](end_span)。" },
+    { id:"C23", ch:"COPD", q:"COPD 惡化病人呼吸困難加劇、痰量增加且轉黃綠膿痰，無肺炎影像。何者最適當？", options:{A:"無肺炎影像排除抗生素適應症", B:"所有患者都以 ciprofloxacin 作首選", C:"符合抗生素考量條件；依病情、既往培養、當地抗藥性與個別風險選藥", D:"膿痰只反映病毒"}, ans:"C", exp:"具備 Anthonisen 三大核心症狀（特別是膿痰增加）符合抗生素使用指徵，應依個別風險選藥[span_252](start_span)[span_252](end_span)。" },
+    { id:"C24", ch:"COPD", q:"COPD 惡化需 NIV 通氣支持，未見膿痰，CRP 偏低。對抗生素的判斷何者最適當？", options:{A:"需要機械通氣本身支持抗生素治療評估，不能只以低 CRP 或無膿痰否決", B:"所有 NIV 患者改抗黴菌藥", C:"CRP 低可排除細菌感染", D:"只有侵襲性通氣才適用抗生素"}, ans:"A", exp:"嚴重惡化需要非侵襲性 (NIV) 或侵襲性機械通氣者，不論症狀如何皆為使用抗生素之強烈適應症[span_253](start_span)[span_253](end_span)。" },
+    { id:"C25", ch:"COPD", q:"重度 COPD 頻繁住院惡化，痰培養曾有綠膿桿菌 (Pseudomonas aeruginosa)。最佳策略？", options:{A:"任何第三代頭孢菌素皆具抗綠膿桿菌活性", B:"終身持續雙抗菌藥", C:"送痰培養，參考既往敏感性及當地資料選適當抗綠膿桿菌藥，結果後調整", D:"固定低劑量 azithromycin"}, ans:"C", exp:"有綠膿桿菌病史與頻繁惡化者，經驗性治療需選用具抗綠膿桿菌活性之抗生素（如 Cefepime, PIP/TAZO）[span_254](start_span)[span_254](end_span)[span_255](start_span)[span_255](end_span)。" },
+    { id:"C26", ch:"COPD", q:"門診 COPD 惡化合併膿痰及呼吸困難，已選到適合抗生素，病況快速改善。依 GOLD 2026 最適當原則？", options:{A:"所有惡化至少 14 天", B:"症狀第1天改善就自行停藥", C:"門診通常採不超過 5 天的短療程並評估反應，而非固定延長至兩週", D:"改口服時一律換 ciprofloxacin"}, ans:"C", exp:"GOLD 2026 建議門診急性惡化抗生素通常療程為 5 天（不超過 5 天），以降低抗藥性及副作用[span_256](start_span)[span_256](end_span)[span_257](start_span)[span_257](end_span)。" },
+    { id:"C27", ch:"COPD", q:"COPD 急性惡化 SpO2 82%，尚未取得 ABG。最合理初始氧療？", options:{A:"以穩定期 LTOT 規則決定是否給氧", B:"一律提高至 100% 毋須 ABG", C:"立即給可滴定氧氣，目標 SpO2 88-92%，並盡快以 ABG 評估 CO2 與酸鹼", D:"因擔心 CO2 滯留不給氧直到 ABG 回報"}, ans:"C", exp:"控制性氧療目標 SpO2 滴定維持於 88-92%，既可防止嚴重組織缺氧，又可降低高碳酸血症呼吸衰竭風險[span_258](start_span)[span_258](end_span)。" },
+    { id:"C28", ch:"COPD", q:"COPD 基線 PaCO2 50 mmHg，此次惡化為 68、pH 7.27，意識清楚可保護氣道。最佳通氣策略？", options:{A:"單憑 PaCO2 68 必須跳過 NIV 立即插管", B:"藥物及控制氧療外，評估啟動 NIV 並密切監測反應與失敗徵象", C:"無需通氣支持", D:"先用鎮靜安眠藥降低呼吸頻率"}, ans:"B", exp:"急性呼吸性酸中毒 (pH ≤ 7.35 且 PaCO2 ≥ 45) 為非侵襲性正壓通氣 (NIV) 首選適應症[span_259](start_span)[span_259](end_span)。" },
+    { id:"C29", ch:"COPD", q:"COPD 酸中毒患者試用 NIV 後，pH 由 7.26 降至 7.18，變嗜睡、無法清痰且血壓下降。最適當處置？", options:{A:"只調高氧氣至 100%", B:"立即由急重症團隊評估插管與更高層級支持，不能持續拖延無效 NIV", C:"嗜睡是成功表現", D:"NIV 必須至少維持 24 小時"}, ans:"B", exp:"意識惡化、氣道保護能力喪失及酸中毒持續惡化為 NIV 失敗徵候，應立即升級進行氣管內插管[span_260](start_span)[span_260](end_span)。" },
+    { id:"C30", ch:"COPD", q:"住院 COPD 惡化患者認知清楚，可正確用 pMDI 加儲霧罐，卻認為霧化吸入 (nebulizer) 一定更有效。最佳說明？", options:{A:"兩者應直接 1：1 毫克替換", B:"pMDI 只適用穩定期", C:"在適當劑量及正確使用下兩者皆可有效；依嚴重度、能力與資源選擇", D:"霧化藥霧較多肺部遞送必然較高"}, ans:"C", exp:"實證顯示 pMDI 搭配儲霧罐在正確操作下，改善肺功能與臨床療效不亞於噴霧器 (Nebulizer)[span_261](start_span)[span_261](end_span)。" },
+    { id:"C31", ch:"COPD", q:"COPD 惡化出院，病人只想帶 salbutamol，因住院時吸後有效。最完整計畫？", options:{A:"只追蹤 FEV1 不需檢視用藥", B:"只備 SABA 足以預防所有未來惡化", C:"出院後固定口服 prednisone 直到下次住院", D:"整合合適長效維持藥、確認技巧與行動計畫，安排早期追蹤及肺復健評估"}, ans:"D", exp:"出院應建立完整的長效支氣管擴張劑維持控制、核對吸入技術、提供書面計畫並於 1-4 週內追蹤[span_262](start_span)[span_262](end_span)。" },
+    { id:"C32", ch:"COPD", q:"COPD 合併心衰竭 (HFrEF)，病況穩定。關於有心血管適應症的 β 阻斷劑，何者最佳？", options:{A:"沒有心血管適應症也常規加 metoprolol", B:"用 LABA 就絕對不能用任何 β 阻斷劑", C:"可評估 β1 選擇性藥物，低劑量起始並監測心肺反應，而非一概禁用", D:"優先 propranolol"}, ans:"C", exp:"心血管適應症明確時，應選用心臟選擇性 β1 阻斷劑（如 Bisoprolol, Metoprolol），心血管效益遠大於呼吸風險[span_263](start_span)[span_263](end_span)。" },
+    { id:"C33", ch:"COPD", q:"COPD 用 tiotropium 後新發排尿困難，有攝護腺肥大病史，另自行加用 ipratropium 每日多次。最佳處置？", options:{A:"吸入藥可完全排除排尿問題", B:"檢視抗膽鹼負荷與重複使用，評估尿滯留並協調調整，而非直接加量", C:"停所有擴張藥改用 ICS", D:"口乾及排尿困難表示 LAMA 劑量不足"}, ans:"B", exp:"抗膽鹼藥疊加使用（LAMA + SAMA）在攝護腺肥大患者身上易引發嚴重急性尿滯留不良反應[span_264](start_span)[span_264](end_span)。" },
+    { id:"C34", ch:"COPD", q:"COPD 患者 theophylline SR 穩定，開始 ciprofloxacin 3天後噁心、心悸。何者最佳？", options:{A:"SR 製劑不受肝代謝影響", B:"噁心與心悸不屬中毒症狀", C:"Ciprofloxacin 誘導代謝", D:"懷疑代謝抑制使濃度上升，及時評估血中濃度、心律與處方調整"}, ans:"D", exp:"Ciprofloxacin 強烈抑制 CYP1A2 阻礙 Theophylline 清除，引發窄治療指數毒性反應[span_265](start_span)[span_265](end_span)。" },
+    { id:"C35", ch:"COPD", q:"COPD 吸菸者住院完全戒菸一週，theophylline 沿用原劑量，出現失眠、噁心。何者最合理？", options:{A:"戒菸會加強 CYP1A2 誘導", B:"改貼 nicotine patch 能維持誘導", C:"煙霧造成的酵素誘導減退可能降低清除率，需重評濃度及劑量", D:"未新增藥物不可能改變 PK"}, ans:"C", exp:"戒菸使碳氫煙霧誘導 CYP1A2 的作用消除，theophylline 清除率降低蓄積中毒[span_266](start_span)[span_266](end_span)。" },
+    { id:"C36", ch:"COPD", q:"使用 theophylline 的 COPD 患者需抗生素；候選 macrolides 皆確認適用。僅就代謝交互作用，何者最佳？", options:{A:"可優先評估 azithromycin，但仍核對 QT 及個別風險", B:"所有 macrolides 影響完全相同", C:"Clarithromycin 會降低 theophylline 濃度", D:"Erythromycin 最不影響"}, ans:"A", exp:"Azithromycin 不具 CYP1A2 抑制作用，相較於 Clarithromycin 與 Erythromycin，對 Theophylline 代謝影響最小[span_267](start_span)[span_267](end_span)。" },
+    { id:"C37", ch:"COPD", q:"Theophylline SR 使用者此次濃度 11 μg/mL，前次 8 mg/L，兩次採血距服藥時間不同，無症狀變化。最佳建議？", options:{A:"兩單位數值等值，先核對產品、穩態、服藥及採血時間，再決定是否需重測", B:"μg/mL 比 mg/L 小 1000 倍", C:"濃度從 8 升 11 立即減量", D:"任何 SR 產品均只需相同谷濃度"}, ans:"A", exp:"1 μg/mL = 1 mg/L[span_268](start_span)[span_268](end_span)。緩釋製劑在吸收相與消除相之濃度不同，判讀需先確認抽血時點[span_269](start_span)[span_269](end_span)。" },
+    { id:"C38", ch:"COPD", q:"COPD 患者使用 ICS 後肺炎一次，要求自行改成同微克數另一種 ICS 認為可消除風險。最佳回答？", options:{A:"任何 ICS 肺炎風險與劑量完全相同", B:"換成 budesonide 後風險一定為零", C:"需重評 ICS 適應性、劑量與製劑差異，換藥不能保證消除肺炎風險，亦不能只按微克數等效換算", D:"同微克數代表相同肺部暴露"}, ans:"C", exp:"ICS 均存在劑量依賴之肺炎風險，且不同成分之效價與肺部沉積率不同，不可直接換算[span_270](start_span)[span_270](end_span)。" },
+    { id:"C39", ch:"COPD", q:"衰弱 COPD 患者手口協調差擬改 DPI，但對候選裝置吸氣能力不足。何者最佳？", options:{A:"DPI 吸氣能力不足一定能遞送", B:"倍增 DPI 劑量即可", C:"所有 DPI 固定需 60 L/min", D:"評估特定裝置阻力及實際技巧，選可有效使用的 pMDI 加儲霧罐、SMI 或適當霧化等替代"}, ans:"D", exp:"DPI 依賴病患自身快速吸氣以解聚藥粉；吸氣流速不足之衰弱病患應更換為 pMDI+儲霧罐或慢速噴霧裝置 (SMI)[span_271](start_span)[span_271](end_span)。" },
+    { id:"C40", ch:"COPD", q:"COPD 惡化反覆高劑量 salbutamol 後手抖心悸，K 由 4.0 降至 2.9 mmol/L，另用利尿劑。最合理處置？", options:{A:"只有口服 SABA 才會低血鉀", B:"考慮 β2 刺激造成鉀移入細胞及其他失鉀因素，監測心電圖與電解質並個別調整", C:"血鉀下降表示受體被阻斷應增加 LABA", D:"直接當 COPD 惡化無須檢驗"}, ans:"B", exp:"高劑量 β2-agonist 刺激細胞膜 Na+/K+-ATPase 促使鉀離子內流，併用利尿劑易誘發嚴重低血鉀心律不整[span_272](start_span)[span_272](end_span)。" },
+    { id:"C41", ch:"COPD", q:"COPD 患者病況穩定維持治療最佳化，重複室內空氣 PaO2 58 mmHg，合併肺動脈高壓。何者最佳？", options:{A:"PaO2 未低於 55 不能符合 LTOT", B:"目標一律 SpO2 100%", C:"符合 LTOT 考量條件，通常每日至少 15 小時並依評估滴定及追蹤", D:"只在喘時吸氧數分鐘等同持續氧療"}, ans:"C", exp:"PaO2 介於 55-59 mmHg 且合併肺高壓、右心衰竭或紅血球增多症，符合長期氧療 (LTOT ≥15hr/day) 適應症[span_273](start_span)[span_273](end_span)。" },
+    { id:"C42", ch:"COPD", q:"COPD 惡化出院時 PaO2 52 mmHg 暫予氧氣。恢復穩定後重評：室內空氣 PaO2 66 mmHg、SpO2 93%，無心衰竭。何者最適當？", options:{A:"目前不再符合嚴重休息低氧的 LTOT 條件，評估安全減停氧，另處理活動喘及活動低氧評估", B:"曾低於55即永久符合 LTOT", C:"先提高至 100% 維持3個月", D:"以提高氧流量取代維持藥"}, ans:"A", exp:"LTOT 之適應症必須在臨床疾病穩定狀態下評估；急性期過後缺氧改善 (PaO2>60) 應評估停止氧療[span_274](start_span)[span_274](end_span)。" },
+    { id:"C43", ch:"COPD", q:"穩定 COPD 患者 SpO2 93%、PaO2 69 mmHg，無右心衰竭，走路會喘。關於 LTOT 何者最佳？", options:{A:"不因單純喘就常規給 LTOT 以延長存活，先最佳化治療及評估活動低氧等原因", B:"PaO2 低於 80 即可符合終身 LTOT", C:"所有活動喘患者均有存活效益", D:"提高到 100% 可取代肺復健"}, ans:"A", exp:"LTOT 之存活延長效益僅存在於休息時嚴重慢性低血氧病患，不適用於單純活動性喘鸣患者[span_275](start_span)[span_275](end_span)。" },
+    { id:"C44", ch:"COPD", q:"COPD 患者肺復健後六分鐘步行增加 55 公尺，CAT 下降 5分，但 FEV1 不變；SpO2 94%。想用長期氧療取代運動，建議何項最佳？", options:{A:"以 FEV1 未增判定失敗改 LTOT", B:"步行改善證明肺泡再生", C:"CAT 改善代表不需支氣管擴張劑", D:"改善支持復健有效，應維持合適訓練與吸入治療；不能因 FEV1 不變而改用無適應證的 LTOT"}, ans:"D", exp:"肺復健能顯著改善周邊骨骼肌效率與活動耐力，其效益不需依賴 FEV1 改善即可確立[span_276](start_span)[span_276](end_span)。" },
+    { id:"C45", ch:"COPD", q:"COPD 患者願戒菸，估計 CrCl 25 mL/min，想用 varenicline。最佳藥師建議？", options:{A:"只經肝代謝可用最高劑量", B:"以 SABA 取代戒菸藥", C:"只要有 COPD 就禁止使用", D:"依腎功能及當地標示調整起始與上限劑量，並追蹤噁心、睡眠及情緒變化"}, ans:"D", exp:"Varenicline 大部分以原形經腎排泄，重度腎功能不全 (CrCl < 30 mL/min) 時劑量應予減半調整[span_277](start_span)[span_277](end_span)。" },
+    { id:"C46", ch:"COPD", q:"COPD 吸菸者有癲癇病史且近期控制不穩，擬用 bupropion SR 戒菸。何者最佳？", options:{A:"避免 bupropion 並評估其他戒菸方案，因其降低癲癇發作閾值", B:"與尼古丁貼片合用可中和風險", C:"SR 劑型可消除癲癇風險", D:"改睡前雙倍 bupropion"}, ans:"A", exp:"Bupropion 會降低痙攣閾值，癲癇病史或頭部創傷者列為絕對禁忌症[span_278](start_span)[span_278](end_span)。" },
+    { id:"C47", ch:"COPD", q:"晚期 COPD 患者 BMI 18、下肢肌力低，想單靠維生素 C 及 E 改善活動力。何者最佳？", options:{A:"停止運動長期臥床", B:"高劑量抗氧化維生素已證實可重建肺泡", C:"低 BMI 不影響 COPD", D:"評估營養不良與其他原因，整合營養支持、肺復健與最佳化呼吸治療，而非以抗氧化劑取代"}, ans:"D", exp:"晚期 COPD 常合併惡病質肌少症，需整合高蛋白高熱量營養補充與肺復健運動處方[span_279](start_span)[span_279](end_span)。" },
+    { id:"C48", ch:"COPD", q:"COPD 合併右心衰竭及水腫，氧療與利尿劑後體重驟降，血壓下降、腎功能變差。何者最適當？", options:{A:"評估是否過度利尿造成前負荷下降，重新調整容量與氧療策略", B:"水腫利尿越快越好", C:"加 digoxin 取代氧療", D:"常規加 sildenafil"}, ans:"A", exp:"肺心症過度利尿會大幅減少右心室前負荷 (preload)，導致左心回血不足休克與腎前性腎衰竭[span_280](start_span)[span_280](end_span)。" },
+    { id:"C49", ch:"COPD", q:"兩位考慮肺減容手術 (LVRS)：甲為上肺葉為主的肺氣腫且運動能力差；乙 FEV1 18%、DLCO 15%。最佳判斷？", options:{A:"甲可轉專科完整評估；乙符合高風險特徵，不能僅因更嚴重就優先手術", B:"LVRS 對所有分布都有同等降死亡率效果", C:"乙肺功能較差手術存活效益必較高", D:"所有 FEV1<20% 皆具相同效益"}, ans:"A", exp:"NETT 試驗證實上肺葉為主且運動能力差者由 LVRS 獲益最大；極低 FEV1 併極低 DLCO 為高死亡率禁忌族群[span_281](start_span)[span_281](end_span)。" },
+    { id:"C50", ch:"COPD", q:"COPD 患者處方三聯療法仍因惡化住院；領藥覆蓋率 45%，吸入技巧錯誤。考慮加 roflumilast，處方評估順序？", options:{A:"先修正實際用藥與裝置並重評；若最佳化後仍惡化，再評估 roflumilast 適用性及安全風險", B:"已開三聯代表完成最佳化直接加藥", C:"FEV1<50% roflumilast 應取代 LABA/LAMA", D:"住院證明吸入途徑失敗改 prednisone"}, ans:"A", exp:"藥物未被有效使用前不能判定治療失敗；應先落實吸入技巧與遵從性，再考慮附加治療[span_282](start_span)[span_282](end_span)。" },
+    { id:"C_App1", ch:"COPD", q:"(附錄原第1題) 55歲男性 COPD 患者 (FEV1 35%)，過去1年有3次惡化住院，目前使用 LAMA 單方。依 GOLD 指引應分類為哪組？下一步治療？", options:{A:"Group B，建議加 LABA", B:"Group C，建議加 ICS", C:"Group D，建議使用 LAMA + LABA + ICS 三聯療法", D:"Group D，建議加 Roflumilast"}, ans:"C", exp:"頻繁住院惡化且嚴重氣流受限為極高風險，LAMA 控制不佳應升階至三聯療法 (LAMA+LABA+ICS)[span_283](start_span)[span_283](end_span)。" },
+    { id:"C_App2", ch:"COPD", q:"(附錄原第2題) 關於氣喘與 COPD 的發炎機制比較，下列敘述何者正確？", options:{A:"氣喘以嗜中性球為主，COPD 以嗜酸性球為主", B:"氣喘主要由 Th2 細胞介導分泌 IL-4,5,13；COPD 主要由 CD8+ T 細胞和嗜中性球介導", C:"兩者對吸入性類固醇反應相同", D:"COPD 發炎局限於氣道不影響肺實質"}, ans:"B", exp:"氣喘主要由 CD4+ Th2 細胞介導嗜酸性球發炎；COPD 主要由 CD8+ T 細胞、巨噬細胞與嗜中性球介導發炎[span_284](start_span)[span_284](end_span)。" },
+    { id:"C_App4", ch:"COPD", q:"(附錄原第4題) 依據 Anthonisen 標準，下列哪種 COPD 急性惡化情況最不需要使用抗生素？", options:{A:"呼吸困難加劇 + 痰量增加 + 痰液膿性增加", B:"呼吸困難加劇 + 痰液膿性增加", C:"痰量增加 + 發燒", D:"僅有呼吸困難加劇，痰液性狀無變化"}, ans:"D", exp:"單純呼吸困難增加但痰液毫無膿性變化者，細菌感染可能性低，不符合抗生素使用標準[span_285](start_span)[span_285](end_span)。" },
+    { id:"C_App5", ch:"COPD", q:"(附錄原第5題) 65歲 COPD 患者急性惡化住院，動脈血氣：pH 7.25、PaCO2 65 mmHg、PaO2 52 mmHg。此患者診斷為何？治療包含何者？", options:{A:"慢性呼吸衰竭；僅加強支氣管擴張劑", B:"急性呼吸衰竭；支氣管擴張劑 + 全身性類固醇 + 抗生素", C:"代償性呼吸性酸中毒；無需治療", D:"急性呼吸衰竭；立即插管機械通氣"}, ans:"B", exp:"未代償呼吸性酸中毒提示急性呼吸衰竭，應給予 SABA+SAMA、全身性類固醇與經驗性抗生素[span_286](start_span)[span_286](end_span)。" },
+    { id:"C_App6", ch:"COPD", q:"(附錄原第6題) 關於 α1-抗胰蛋白酶 (AAT) 缺乏症相關的 COPD，下列敘述何者錯誤？", options:{A:"ZZ 基因型患者的 AAT 濃度僅為正常人的 10%", B:"吸菸會使 ZZ 型患者的 FEV1 下降速度達到每年約 108 mL", C:"AAT 補充療法適用於所有 COPD 患者以減緩疾病進展", D:"此疾病會導致早發性肺氣腫，通常在 20-50 歲發病"}, ans:"C", exp:"AAT 補充療法僅限用於經基因確診為嚴重 AAT 缺乏症之患者，不適用於一般吸菸引起之 COPD[span_287](start_span)[span_287](end_span)。" },
+    { id:"C_App8", ch:"COPD", q:"(附錄原第8題) 關於 COPD 患者的長期氧氣治療 (LTOT)，下列何者最符合給氧適應症與治療原則？", options:{A:"休息時 PaO2 65 mmHg 建議每晚使用", B:"休息時 PaO2 58 mmHg 且有肺動脈高壓證據，建議持續氧療每天≥15小時", C:"運動時會喘但休息時 PaO2 70 mmHg 建議長期氧療", D:"PaO2 54 mmHg 目標是提升至 80 mmHg 以上"}, ans:"B", exp:"PaO2 介於 55-60 mmHg 合併肺動脈高壓為 LTOT 標準適應症，每日給氧至少 15 小時能顯著降低死亡率[span_288](start_span)[span_288](end_span)。" },
+    { id:"C_App9", ch:"COPD", q:"(附錄原第9題) 70歲 COPD 患者合併心房顫動與心肌梗塞病史。關於此患者的藥物治療建議何者最適當？", options:{A:"避免使用所有 β-阻斷劑", B:"可使用心臟選擇性 β1-阻斷劑（如 Metoprolol），能改善心血管預後且不顯著惡化呼吸功能", C:"優先使用非選擇性 β-阻斷劑", D:"若使用 LABA 則絕對禁用任何 β-阻斷劑"}, ans:"B", exp:"心臟選擇性 β1-阻斷劑能降低心肌梗塞患者死亡率，且不會阻斷氣道 β2 受體造成支氣管收縮[span_289](start_span)[span_289](end_span)。" },
+    { id:"C_App10", ch:"COPD", q:"(附錄原第10題) 嚴重 COPD 慢性支氣管炎患者使用三聯療法仍頻繁惡化，考慮加入 Roflumilast。關於此藥何者錯誤？", options:{A:"Roflumilast 是口服的 PDE-4 抑制劑具抗發炎作用", B:"可降低此類患者約 15%的惡化頻率", C:"主要副作用包括腹瀉、體重減輕和精神症狀", D:"為支氣管擴張劑，可取代 LABA 使用以減少藥物數量"}, ans:"D", exp:"Roflumilast 為口服抗發炎藥物，完全不具直接支氣管擴張作用，不可取代 LABA 或 LAMA[span_290](start_span)[span_290](end_span)。" },
+    { id:"C_App11", ch:"COPD", q:"(附錄原第11題) 58歲 COPD 患者使用 Tiotropium 3個月後症狀改善有限。升階治療何者最符合指引且具最佳證據支持？", options:{A:"將 Tiotropium 劑量加倍", B:"加入 Salmeterol (LABA)，形成 LAMA + LABA 複方", C:"停用 Tiotropium 改用 ICS/LABA", D:"加入 Theophylline"}, ans:"B", exp:"單方支氣管擴張劑未達目標時，升階為兩種機轉互補之 LAMA + LABA 雙長效複方具最佳臨床實證[span_291](start_span)[span_291](end_span)。" },
+    { id:"C_App13", ch:"COPD", q:"(附錄原第13題) 72歲 COPD 惡化住院，生命徵象穩定，痰液轉為白色透明，CRP 8 mg/L。藥物治療何者最適當？", options:{A:"Prednisone 40 mg QD × 14天 + Levofloxacin", B:"Prednisone 40 mg QD × 5天，暫不使用抗生素並觀察", C:"Methylprednisolone 125 mg IV Q6H + Augmentin", D:"Prednisone 20 mg QD × 10天 + Azithromycin"}, ans:"B", exp:"類固醇標準療程為 Prednisone 40 mg 5 天；痰轉透明且發炎指數正常，不符細菌感染特徵暫不需抗生素[span_292](start_span)[span_292](end_span)。" },
+    { id:"C_App15", ch:"COPD", q:"(附錄原第15題) 60歲 COPD 患者三聯療法控制下過去6個月發生2次肺炎。關於此患者 ICS 之使用處置何者最合理？", options:{A:"立即停用 ICS", B:"換為不同成分 ICS 即可消除風險", C:"與患者討論 ICS 停用的風險效益，若決定停用需密切監測急性惡化率和肺功能", D:"將 ICS 劑量加倍"}, ans:"C", exp:"反覆肺炎為停用 ICS 理由，但需與患者充分溝通停藥後潛在肺功能下降或惡化風險，逐步撤藥並追蹤。" }
+  ]
+};
+
+let currentQuiz = [];
+let userAnswers = {};
+
+function startQuiz() {
+  const selectedChapters = Array.from(document.querySelectorAll('input[name="chapter"]:checked')).map(el => el.value);
+  if (selectedChapters.length === 0) {
+    alert("請至少勾選一個測驗單元！");
+    return;
+  }
+
+  // 匯總所選章節母體
+  let pool = [];
+  selectedChapters.forEach(ch => {
+    if (QUESTION_BANK[ch]) {
+      pool = pool.concat(QUESTION_BANK[ch]);
+    }
+  });
+
+  // Fisher-Yates 洗牌演算法
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+
+  // 依選擇題數決定抽題量
+  const countChoice = document.querySelector('input[name="count"]:checked').value;
+  let targetCount = pool.length;
+  if (countChoice !== 'all') {
+    const requested = parseInt(countChoice, 10);
+    if (requested > pool.length) {
+      alert(`您勾選的單元目前題庫總數為 ${pool.length} 題，將為您全數抽取進行測驗！`);
+      targetCount = pool.length;
+    } else {
+      targetCount = requested;
+    }
+  }
+
+  currentQuiz = pool.slice(0, targetCount);
+  userAnswers = {};
+
+  renderQuiz();
+  document.getElementById('setup-view').classList.add('hidden');
+  document.getElementById('result-view').classList.add('hidden');
+  document.getElementById('quiz-view').classList.remove('hidden');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function renderQuiz() {
+  const container = document.getElementById('questions-container');
+  container.innerHTML = '';
+  document.getElementById('quiz-count-text').innerText = `總共 ${currentQuiz.length} 題`;
+
+  currentQuiz.forEach((q, idx) => {
+    const qDiv = document.createElement('div');
+    qDiv.className = 'question-card';
+    qDiv.innerHTML = `
+      <div class="question-header">
+        <span class="chapter-tag">${q.ch}</span> ${idx + 1}. ${q.q}
+      </div>
+      <div class="choices-list">
+        ${Object.entries(q.options).map(([optKey, optVal]) => `
+          <label class="choice-item">
+            <input type="radio" name="q_${idx}" value="${optKey}" onchange="recordAnswer(${idx}, '${optKey}')">
+            <span><strong>(${optKey})</strong> ${optVal}</span>
+          </label>
+        `).join('')}
+      </div>
+    `;
+    container.appendChild(qDiv);
+  });
+  updateProgress();
+}
+
+function recordAnswer(qIndex, answer) {
+  userAnswers[qIndex] = answer;
+  updateProgress();
+}
+
+function updateProgress() {
+  const answeredCount = Object.keys(userAnswers).length;
+  const pct = (answeredCount / currentQuiz.length) * 100;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('quiz-progress-text').innerText = `已作答：${answeredCount} / ${currentQuiz.length} 題`;
+}
+
+function submitQuiz() {
+  const answeredCount = Object.keys(userAnswers).length;
+  if (answeredCount < currentQuiz.length) {
+    if (!confirm(`您還有 ${currentQuiz.length - answeredCount} 題尚未作答，確定要現在交卷結算嗎？`)) {
+      return;
+    }
+  }
+
+  let correctCount = 0;
+  const reviewContainer = document.getElementById('review-container');
+  reviewContainer.innerHTML = '';
+
+  currentQuiz.forEach((q, idx) => {
+    const userAns = userAnswers[idx] || "未作答";
+    const isCorrect = userAns === q.ans;
+    if (isCorrect) correctCount++;
+
+    // 生成題目每個選項的顯示標籤
+    const optionsHtml = Object.entries(q.options).map(([optKey, optVal]) => {
+      let optClass = "review-opt";
+      let tag = "";
+      if (optKey === q.ans) {
+        optClass += " is-correct";
+        tag = " <span style='color:var(--success); font-weight:bold;'>[正確答案]</span>";
+      } else if (optKey === userAns) {
+        optClass += " is-user-wrong";
+        tag = " <span style='color:var(--danger); font-weight:bold;'>[您的選擇]</span>";
+      }
+      return `<div class="${optClass}"><strong>(${optKey})</strong> ${optVal}${tag}</div>`;
+    }).join('');
+
+    const itemDiv = document.createElement('div');
+    itemDiv.className = `review-item ${isCorrect ? '' : 'wrong'}`;
+    itemDiv.innerHTML = `
+      <div style="font-weight:600; margin-bottom:8px;">
+        <span class="chapter-tag">${q.ch}</span> 第 ${idx + 1} 題：${q.q}
+      </div>
+      <div class="review-options">
+        ${optionsHtml}
+      </div>
+      <div style="margin: 8px 0 6px 0; font-size:0.95rem;">
+        您的答案：<strong style="color:${isCorrect ? 'var(--success)' : 'var(--danger)'}">(${userAns})</strong>
+        ${!isCorrect ? ` ｜ 正確答案：<strong style="color:var(--success)">(${q.ans})</strong>` : '（答對 ✔）'}
+      </div>
+      <div class="analysis">
+        <strong>💡 解析：</strong>${q.exp}
+      </div>
+    `;
+    reviewContainer.appendChild(itemDiv);
+  });
+
+  const finalScore = Math.round((correctCount / currentQuiz.length) * 100);
+  document.getElementById('score-display').innerText = `${finalScore} 分`;
+  document.getElementById('stat-display').innerText = `答對率：${finalScore}%（答對 ${correctCount} 題 / 總計 ${currentQuiz.length} 題）`;
+
+  document.getElementById('quiz-view').classList.add('hidden');
+  document.getElementById('result-view').classList.remove('hidden');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function resetQuiz() {
+  document.getElementById('result-view').classList.add('hidden');
+  document.getElementById('setup-view').classList.remove('hidden');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+
+</body>
+</html>
